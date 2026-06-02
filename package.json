@@ -2,18 +2,21 @@
   "name": "madhavjimasala",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.12.1",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "dev": "turbo dev",
+    "build": "turbo build"
   },
   "dependencies": {
+    "better-auth": "^1.6.11",
+    "dotenv": "^17.4.2",
+    "jose": "^6.2.3",
     "mongodb": "^7.1.1",
     "mongoose": "^9.4.1",
     "next": "16.2.3",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -22,7 +25,10 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
+    "prisma": "^6.19.3",
     "tailwindcss": "^4",
+    "tsx": "^4.22.3",
+    "turbo": "^2.9.14",
     "typescript": "^5"
   }
 }
