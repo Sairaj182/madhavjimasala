@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import LogoSplash from "@/components/layout/LogoSplash";
 import { PAGE_META } from "@/lib/constants";
 import "./globals.css";
 
@@ -41,6 +42,7 @@ export default function RootLayout({
       className={`${inter.variable} ${playfair.variable}`}
     >
       <body className="min-h-screen flex flex-col">
+        <LogoSplash />
         <Header />
         <main className="flex-1 pt-16 lg:pt-20">{children}</main>
         <Footer />

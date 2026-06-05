@@ -32,7 +32,16 @@ export default function Header() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between lg:h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/madhavjimasala_logo_tbg.png"
+              alt={SITE_INFO.logoAlt}
+              width={52}
+              height={52}
+              className="h-10 w-10 sm:h-11 sm:w-11 lg:h-[52px] lg:w-[52px] transition-transform duration-300 group-hover:scale-105"
+              style={{ objectFit: 'contain' }}
+            />
             <span className="text-xl font-bold font-heading text-brand-maroon lg:text-2xl tracking-tight">
               {SITE_INFO.name}
             </span>

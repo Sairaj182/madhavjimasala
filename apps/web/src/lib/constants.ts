@@ -31,7 +31,7 @@ export const SITE_INFO: SiteInfo = {
   description:
     "Crafting the finest aromatic spices with heritage techniques and modern quality standards since 1982.",
   foundedYear: 1982,
-  logoPath: "/images/logo.png",
+  logoPath: "/images/madhavjimasala_logo_tbg.png",
   logoAlt: "Madhavji Masala Logo",
 };
 

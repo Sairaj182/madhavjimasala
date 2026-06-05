@@ -122,3 +122,48 @@ h1, h2, h3, h4, h5, h6 {
   background: rgba(139, 26, 26, 0.15);
   color: var(--color-brand-maroon-dark);
 }
+
+
+/* ── Logo Splash Screen (Keyframes Only) ───── */
+
+.splash-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212, 160, 23, 0.8), rgba(139, 26, 26, 0.4));
+  opacity: 0;
+  animation: splash-particle-float 3s ease-in-out infinite;
+}
+
+@keyframes splash-particle-float {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0);
+  }
+  20% {
+    opacity: 0.7;
+    transform: translateY(-10px) scale(1);
+  }
+  80% {
+    opacity: 0.3;
+    transform: translateY(-40px) scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-60px) scale(0);
+  }
+}
+
+.splash-ring {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2px solid rgba(212, 160, 23, 0.3);
+  animation: splash-ring-pulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes splash-ring-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.08); opacity: 0.6; }
+}
+
