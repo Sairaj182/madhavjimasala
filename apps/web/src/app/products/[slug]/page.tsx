@@ -279,7 +279,7 @@ function ProductDetailContent({
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-brand-dark">
-                    Pankaj Madhavji
+                    Rasiklal Raithatha
                   </p>
                   <p className="text-xs text-brand-gold font-medium">
                     Master Spice Curator

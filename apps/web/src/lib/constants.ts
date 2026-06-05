@@ -63,9 +63,9 @@ export const CONTACT_INFO: ContactInfo = {
       "Unjha, Gujarat 384170",
     ],
   },
-  phones: ["+91 79 4050 8177", "+91 98250 41234"],
+  phones: ["+91 9409371671", "+91 9825099832"],
   emails: ["info@madhavjimasala.com", "sales@madhavjimasala.com"],
-  whatsapp: "+919825041234",
+  whatsapp: "+918866071672",
 };
 
 // ── Social Links ─────────────────────────────
@@ -484,7 +484,7 @@ export const ABOUT_CONTENT: AboutContent = {
     highlightedText: "Saffron & Soil",
     story: [
       "Since our inception, Madhavji Masala has been more than a brand — it is a custodian of India's culinary soul. We began as a small apothecary of flavor, dedicated to preserving the ancient art that makes a meal a memory.",
-      "Founded in 1982 by Pankaj Madhavji in the heart of Gujarat's spice country, we've grown from a humble grinding mill to one of the region's most trusted spice houses — without ever compromising on the principles that started it all.",
+      "Founded in 1982 by Rasiklal Raithatha in the heart of Gujarat's spice country, we've grown from a humble grinding mill to one of the region's most trusted spice houses — without ever compromising on the principles that started it all.",
       "Today, three generations of the Madhavji family continue this legacy, combining time-honored techniques with modern quality standards to deliver spices that honor tradition while meeting the demands of contemporary kitchens worldwide.",
     ],
     image: "/images/about/heritage.png",
