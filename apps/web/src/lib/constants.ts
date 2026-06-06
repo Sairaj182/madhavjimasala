@@ -25,14 +25,16 @@ import type {
 
 // ── Brand Info ───────────────────────────────
 
+export const YEAR_OF_ESTABLISHMENT: number = 1970;
+export const FAMILY_GENERATIONS: number = 3;
 export const SITE_INFO: SiteInfo = {
   name: "Madhavji Masala",
   tagline: "Pure Spices. Authentic Taste.",
   description:
-    "Crafting the finest aromatic spices with heritage techniques and modern quality standards since 1982.",
-  foundedYear: 1982,
+    `Crafting the finest aromatic spices with heritage techniques and modern quality standards since ${YEAR_OF_ESTABLISHMENT}.`,
+  foundedYear: YEAR_OF_ESTABLISHMENT,
   logoPath: "/images/madhavjimasala_logo_tbg.png",
-  logoAlt: "Madhavji Masala Logo",
+  logoAlt: "Madhavji Masala",
 };
 
 // ── Navigation ───────────────────────────────
@@ -51,21 +53,26 @@ export const CONTACT_INFO: ContactInfo = {
   corporateOffice: {
     label: "Corporate Office",
     address: [
-      "402, The Spice Plaza",
-      "Near Navrangpura, Ahmedabad",
-      "Gujarat 380009",
+      "Madhavji Masala Mill",
+      "5, Vasant Engg. Compound, Dabhoi Road",
+      "Opposite Yamuna Mill Road,",
+      "Vadodara",
+      "Gujarat 380004",
     ],
   },
   productionFacility: {
     label: "Production Facility",
     address: [
-      "Plot No. F-287, Industrial Estate",
-      "Unjha, Gujarat 384170",
+      "Madhavji Masala Mill",
+      "5, Vasant Engg. Compound, Dabhoi Road",
+      "Opposite Yamuna Mill Road,",
+      "Vadodara",
+      "Gujarat 380004",
     ],
   },
   phones: ["+91 9409371671", "+91 9825099832"],
-  emails: ["info@madhavjimasala.com", "sales@madhavjimasala.com"],
-  whatsapp: "+918866071672",
+  emails: ["madhavjimasalamill@gmail.com", "mitulraithatha74@gmail.com"],
+  whatsapp: "+919427986767",
 };
 
 // ── Social Links ─────────────────────────────
@@ -83,7 +90,7 @@ export const HERO_CONTENT: HeroContent = {
   badge: "PREMIUM SPICE COLLECTION",
   headline: "Pure Spices.\nAuthentic Taste.",
   subheadline:
-    "Tradition's purest craft—our signature spice blends are a gift of authentic flavors, cultivated with care and love.",
+    "Tradition's purest craft - Our signature spice blends are a gift of authentic flavors, cultivated with care and love.",
   description:
     "From the fertile lands of Gujarat to kitchens worldwide, Madhavji Masala delivers purity in every pinch.",
   primaryCta: { label: "Our Products", href: "/products" },
@@ -483,16 +490,16 @@ export const ABOUT_CONTENT: AboutContent = {
     headline: "A Legacy Sculpted by",
     highlightedText: "Saffron & Soil",
     story: [
-      "Since our inception, Madhavji Masala has been more than a brand — it is a custodian of India's culinary soul. We began as a small apothecary of flavor, dedicated to preserving the ancient art that makes a meal a memory.",
-      "Founded in 1982 by Rasiklal Raithatha in the heart of Gujarat's spice country, we've grown from a humble grinding mill to one of the region's most trusted spice houses — without ever compromising on the principles that started it all.",
-      "Today, three generations of the Madhavji family continue this legacy, combining time-honored techniques with modern quality standards to deliver spices that honor tradition while meeting the demands of contemporary kitchens worldwide.",
+      "Since our inception, Madhavji Masala has been more than a brand. It is a custodian of India's culinary soul. We began as a small apothecary of flavor, dedicated to preserving the ancient art that makes a meal a memory.",
+      `Founded in ${YEAR_OF_ESTABLISHMENT} by Rasiklal Raithatha in the heart of Gujarat's spice country, we've grown from a humble grinding mill to one of the region's most trusted spice houses — without ever compromising on the principles that started it all.`,
+      `Today, ${FAMILY_GENERATIONS} generations of the Madhavji family continue this legacy, combining time-honored techniques with modern quality standards to deliver spices that honor tradition while meeting the demands of contemporary kitchens worldwide.`,
     ],
     image: "/images/about/heritage.png",
   },
   vision: {
     title: "Our Global Vision",
     description:
-      "To redefine the global standard of purity in the spice industry, ensuring that every household — regardless of geography — can access the authentic, potent heart of traditional seasonings without compromise.",
+      "To redefine the global standard of purity in the spice industry, ensuring that every household, regardless of geography, can access the authentic potent heart of traditional seasonings without compromise.",
     highlights: ["100+ Products & Forms", "Sustainable Cold Grinding"],
   },
   mission: {
@@ -591,7 +598,7 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
 
 export const PAGE_META: Record<string, PageMeta> = {
   home: {
-    title: "Madhavji Masala — Pure Spices. Authentic Taste.",
+    title: "Madhavji Masala : Pure Spices. Authentic Taste.",
     description:
       "Premium Indian spices crafted with heritage techniques and modern quality standards. Explore our range of pure, lab-tested spices delivered from Gujarat to the world.",
     keywords: ["Indian spices", "pure masala", "Gujarat spices", "organic turmeric", "premium spice brand"],
@@ -615,7 +622,7 @@ export const PAGE_META: Record<string, PageMeta> = {
     keywords: ["FSSAI certified spices", "ISO spice company", "quality certified masala"],
   },
   contact: {
-    title: "Contact Us — Madhavji Masala",
+    title: "Contact Us - Madhavji Masala",
     description:
       "Get in touch for wholesale inquiries, partnerships, or custom spice blending. Our team is ready to curate the perfect flavor profile for your business.",
     keywords: ["contact Madhavji Masala", "wholesale spices", "spice supplier India"],
