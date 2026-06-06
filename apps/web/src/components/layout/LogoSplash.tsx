@@ -164,6 +164,7 @@ export default function LogoSplash() {
           fontWeight: 500,
           letterSpacing: "0.15em",
           color: "rgba(232, 197, 71, 0.9)",
+          textAlign: "center",
           opacity: phase === "reveal" ? 1 : 0,
           transform:
             phase === "reveal" ? "translateY(0)" : "translateY(16px)",
