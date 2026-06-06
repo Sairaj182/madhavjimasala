@@ -28,7 +28,7 @@ export default function HeroSection() {
           </div>
 
           {/* Headline */}
-          <h1 className="mt-6 font-heading text-5xl font-bold leading-[1.1] text-white sm:text-6xl lg:text-7xl"
+          <h1 className="mt-6 font-heading text-4xl font-bold leading-[1.1] text-white sm:text-5xl lg:text-7xl"
               style={{ animation: "slide-up 0.8s ease-out 0.1s both" }}>
             {HERO_CONTENT.headline.split("\n").map((line, i) => (
               <span key={i}>

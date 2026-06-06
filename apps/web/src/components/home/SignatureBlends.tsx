@@ -67,13 +67,13 @@ export default function SignatureBlends() {
                 <p className="mt-1.5 text-sm leading-relaxed text-brand-gray line-clamp-2">
                   {product.shortDescription}
                 </p>
-                <div className="mt-4 flex items-center justify-between">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
                   <span className="text-sm font-bold text-brand-maroon">
                     From ₹{product.price}
                   </span>
                   <span className="flex items-center gap-1 text-xs font-semibold text-brand-maroon opacity-0 transition-all duration-300 group-hover:opacity-100">
                     View Details
-                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
                     </svg>
                   </span>

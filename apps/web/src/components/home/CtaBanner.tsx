@@ -8,7 +8,7 @@ export default function CtaBanner() {
         <div className="relative overflow-hidden rounded-3xl bg-brand-dark">
           <div className="grid lg:grid-cols-2">
             {/* Content */}
-            <div className="relative z-10 p-10 lg:p-16">
+            <div className="relative z-10 p-6 sm:p-10 lg:p-16">
               <h2 className="font-heading text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
                 Scale your business with finest{" "}
                 <span className="text-brand-gold">aromatics.</span>
@@ -37,7 +37,7 @@ export default function CtaBanner() {
               </div>
 
               {/* Stats */}
-              <div className="mt-10 flex gap-8">
+              <div className="mt-10 flex flex-wrap gap-4 sm:gap-8">
                 <div>
                   <p className="text-2xl font-bold text-brand-gold">40+</p>
                   <p className="mt-1 text-xs text-white/50">Years Legacy</p>
