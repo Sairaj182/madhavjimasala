@@ -1,50 +1,59 @@
 import { TRUST_FACTORS } from "@/lib/constants";
+import { ScrollReveal } from "@/components/shared/ScrollReveal";
 
 export default function TrustFactors() {
   return (
-    <section className="bg-brand-cream py-20 lg:py-28">
+    <section className="bg-brand-cream py-20 lg:py-28 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {TRUST_FACTORS.map((factor) => (
-            <div
-              key={factor.id}
-              className="group relative rounded-2xl bg-white p-8 shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1"
+          {TRUST_FACTORS.map((factor, index) => (
+            <ScrollReveal 
+              key={factor.id} 
+              animation="fade-up" 
+              delay={`delay-${index * 100}`}
+              className="h-full"
             >
-              {/* Icon */}
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-brand-cream text-brand-maroon transition-colors duration-300 group-hover:bg-brand-maroon group-hover:text-white">
-                <TrustIcon name={factor.icon} />
+              <div
+                className="group relative rounded-2xl bg-white p-8 shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 h-full"
+              >
+                {/* Icon */}
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-brand-cream text-brand-maroon transition-colors duration-300 group-hover:bg-brand-maroon group-hover:text-white">
+                  <TrustIcon name={factor.icon} />
+                </div>
+
+                {/* Stat Badge */}
+                {factor.stat && (
+                  <span className="mt-4 inline-block rounded-full bg-brand-gold/10 px-3 py-1 text-xs font-bold text-brand-gold">
+                    {factor.stat}
+                  </span>
+                )}
+
+                {/* Title & Description */}
+                <h3 className="mt-3 font-heading text-lg font-bold text-brand-dark">
+                  {factor.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-brand-gray">
+                  {factor.description}
+                </p>
               </div>
-
-              {/* Stat Badge */}
-              {factor.stat && (
-                <span className="mt-4 inline-block rounded-full bg-brand-gold/10 px-3 py-1 text-xs font-bold text-brand-gold">
-                  {factor.stat}
-                </span>
-              )}
-
-              {/* Title & Description */}
-              <h3 className="mt-3 font-heading text-lg font-bold text-brand-dark">
-                {factor.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-brand-gray">
-                {factor.description}
-              </p>
-            </div>
+            </ScrollReveal>
           ))}
         </div>
 
         {/* Central tagline */}
-        <div className="mt-16 text-center">
-          <h2 className="font-heading text-3xl font-bold text-brand-dark sm:text-4xl">
-            Why the world trusts{" "}
-            <span className="text-brand-maroon">Madhavji Masala.</span>
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-brand-gray">
-            For over four decades, we&apos;ve been the trusted spice partner for
-            homes, restaurants, and businesses worldwide. Our commitment to
-            purity isn&apos;t just a promise — it&apos;s our legacy.
-          </p>
-        </div>
+        <ScrollReveal animation="fade-up" delay="delay-300">
+          <div className="mt-16 text-center">
+            <h2 className="font-heading text-3xl font-bold text-brand-dark sm:text-4xl">
+              Why the world trusts{" "}
+              <span className="text-brand-maroon">Madhavji Masala.</span>
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-brand-gray">
+              For over four decades, we&apos;ve been the trusted spice partner for
+              homes, restaurants, and businesses worldwide. Our commitment to
+              purity isn&apos;t just a promise — it&apos;s our legacy.
+            </p>
+          </div>
+        </ScrollReveal>
       </div>
     </section>
   );

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import { YEAR_OF_ESTABLISHMENT } from "@/lib/constants";
 
 export default function LogoSplash() {
   const [phase, setPhase] = useState<
@@ -204,7 +205,7 @@ export default function LogoSplash() {
             "opacity 0.6s ease-out 1.5s, transform 0.6s ease-out 1.5s",
         }}
       >
-        Since 1982
+        Since {YEAR_OF_ESTABLISHMENT}
       </p>
     </div>
   );
