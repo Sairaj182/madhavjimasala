@@ -60,25 +60,28 @@ export default function ProductsPage() {
               <Link
                 key={product.id}
                 href={`/products/${product.slug}`}
-                className="group overflow-hidden rounded-2xl border border-brand-border bg-white transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1"
+                className="group flex flex-col h-full overflow-hidden rounded-2xl border border-brand-border bg-white transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1"
               >
+                
                 {/* Image */}
-                <div className="relative aspect-[4/3] overflow-hidden bg-brand-cream">
+                <div className="relative aspect-[4/3] overflow-hidden bg-white">
+                  
                   <Image
                     src={product.images[0]}
                     alt={product.name}
                     fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="object-contain p-2 transition-transform duration-500 group-hover:scale-105"
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                   />
                   {/* Category ribbon */}
-                  <div className="absolute left-0 top-4 rounded-r-full bg-brand-gold px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+                  <div className="absolute left-0 top-4 rounded-r-full bg-brand-maroon/90 px-2 py-1 text-[10px] uppercase tracking-wider text-white">
                     {product.category}
                   </div>
                 </div>
 
                 {/* Content */}
-                <div className="p-5">
+                <div className="flex flex-col flex-grow p-5">
+                  
                   <h3 className="font-heading text-lg font-bold text-brand-dark transition-colors group-hover:text-brand-maroon">
                     {product.name}
                   </h3>
@@ -87,7 +90,7 @@ export default function ProductsPage() {
                   </p>
 
                   {/* Price & Link */}
-                  <div className="mt-4 flex items-center justify-between border-t border-brand-border pt-4">
+                  <div className="mt-auto pt-4 flex items-center justify-between border-t border-brand-border">
                     <span className="text-sm font-bold text-brand-maroon">
                       From ₹{product.price}
                     </span>

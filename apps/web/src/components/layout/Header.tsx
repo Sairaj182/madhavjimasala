@@ -39,7 +39,7 @@ export default function Header() {
               alt={SITE_INFO.logoAlt}
               width={52}
               height={52}
-              className="h-9 w-9 shrink-0 sm:h-11 sm:w-11 lg:h-[72px] lg:w-[72px] transition-transform duration-300 group-hover:scale-105"
+              className="h-20 w-20 shrink-0 sm:h-24 sm:w-24 lg:h-[92px] lg:w-[92px] transition-transform duration-300 group-hover:scale-105"
               style={{ objectFit: 'contain' }}
             />
             <span className="text-lg sm:text-xl font-bold font-heading text-brand-maroon-dark lg:text-2xl tracking-tight truncate">
