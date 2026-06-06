@@ -17,20 +17,20 @@ export default function NewsletterSection() {
             </p>
 
             {/* Email Form */}
-            <div className="mt-8 flex max-w-md gap-3">
+            <div className="mt-8 flex max-w-md flex-col gap-3 sm:flex-row">
               <input
                 type="email"
                 placeholder="Your email address"
-                className="flex-1 rounded-full border border-brand-border bg-white px-5 py-3 text-sm text-brand-dark placeholder-brand-gray-light outline-none transition-all focus:border-brand-maroon focus:ring-2 focus:ring-brand-maroon/10"
+                className="w-full sm:flex-1 rounded-full border border-brand-border bg-white px-5 py-3 text-sm text-brand-dark placeholder-brand-gray-light outline-none transition-all focus:border-brand-maroon focus:ring-2 focus:ring-brand-maroon/10"
               />
-              <button className="whitespace-nowrap rounded-full bg-brand-maroon px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-maroon-dark hover:shadow-lg">
+              <button className="w-full sm:w-auto whitespace-nowrap rounded-full bg-brand-maroon px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-maroon-dark hover:shadow-lg">
                 Subscribe
               </button>
             </div>
           </div>
 
           {/* Trust Badges */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {[
               { icon: "leaf", title: "Ethically Sourced", desc: "Direct farm partnerships" },
               { icon: "beaker", title: "Lab Tested", desc: "24-layer quality checks" },
