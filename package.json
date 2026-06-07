@@ -8,6 +8,7 @@
     "build": "turbo build"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
     "better-auth": "^1.6.11",
     "dotenv": "^17.4.2",
     "jose": "^6.2.3",
