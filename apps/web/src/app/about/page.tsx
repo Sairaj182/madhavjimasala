@@ -181,7 +181,7 @@ export default function AboutPage() {
               { year: SITE_INFO.foundedYear.toString(), event: "Founded", desc: "Started as a small grinding mill in Unjha, Gujarat." },
               { year: "1995", event: "First Export", desc: "Expanded to international markets with first bulk shipment." },
               { year: "2010", event: "Modern Facility", desc: "Opened state-of-the-art processing facility with cryogenic grinding." },
-              { year: "2026", event: "Digital Presence", desc: "Launched digital platform to serve customers worldwide." },
+              { year: "2026", event: "Digital Presence", desc: "Launched digital platform to serve customers." },
             ].map((milestone) => (
               <div
                 key={milestone.year}

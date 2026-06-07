@@ -44,12 +44,12 @@ export default function TrustFactors() {
         <ScrollReveal animation="fade-up" delay="delay-300">
           <div className="mt-16 text-center">
             <h2 className="font-heading text-3xl font-bold text-brand-dark sm:text-4xl">
-              Why the world trusts{" "}
+              Why the customers trusts{" "}
               <span className="text-brand-maroon">Madhavji Masala.</span>
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-brand-gray">
               For over four decades, we&apos;ve been the trusted spice partner for
-              homes, restaurants, and businesses worldwide. Our commitment to
+              homes, restaurants, and businesses. Our commitment to
               purity isn&apos;t just a promise — it&apos;s our legacy.
             </p>
           </div>

@@ -33,21 +33,27 @@ export default function Header() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between lg:h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group min-w-0">
-            <div className="relative h-16 w-16 sm:h-20 sm:w-20 overflow-hidden transition-transform duration-500 group-hover:scale-105">
+          <Link href="/" className="flex items-center group min-w-0">
+            {/* Logo Image */}
+            <div className="relative shrink-0 h-14 w-14 sm:h-20 sm:w-20 transition-all duration-500 group-hover:-rotate-6 group-hover:scale-110">
               <Image
                 src="/images/madhavjimasala_logo_tbg.png"
                 alt={SITE_INFO.logoAlt}
                 fill
-                className="object-contain"
+                className="object-contain drop-shadow-sm group-hover:drop-shadow-md transition-all duration-500"
                 priority
               />
             </div>
-            <div className="flex flex-col">
-              <span className="text-xl sm:text-2xl font-bold font-heading text-brand-maroon-dark tracking-wide truncate">
+
+            {/* Elegant Divider (Desktop) */}
+            <div className="hidden sm:block h-8 w-[1px] bg-gradient-to-b from-transparent via-[var(--color-brand-gold)] to-transparent mx-4 opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
+
+            {/* Typography */}
+            <div className="flex flex-col ml-3 sm:ml-0 justify-center">
+              <span className="text-base sm:text-lg lg:text-xl font-bold font-heading text-[var(--color-brand-maroon-dark)] tracking-wide truncate leading-tight group-hover:text-[var(--color-brand-maroon)] transition-colors">
                 {SITE_INFO.name}
               </span>
-              <span className="hidden sm:block text-[10px] tracking-[0.2em] uppercase text-brand-gold font-semibold">
+              <span className="block text-[7px] sm:text-[8px] lg:text-[9px] tracking-[0.15em] sm:tracking-[0.25em] uppercase text-[var(--color-brand-gold)] font-semibold opacity-90 mt-0.5">
                 Pure Spices. Authentic Taste.
               </span>
             </div>
@@ -72,7 +78,7 @@ export default function Header() {
           </nav>
 
           {/* CTA + Mobile Toggle */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 sm:gap-6">
             <Link
               href="/contact"
               className="hidden sm:inline-flex items-center justify-center border border-brand-maroon bg-transparent px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-maroon transition-all duration-300 hover:bg-brand-maroon hover:text-white hover:shadow-lg"
@@ -83,13 +89,13 @@ export default function Header() {
             {/* Mobile hamburger */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="relative flex h-10 w-10 items-center justify-center transition-colors lg:hidden text-brand-dark hover:text-brand-maroon"
+              className="relative flex h-10 w-8 sm:w-10 items-center justify-end transition-colors lg:hidden text-[var(--color-brand-dark)] hover:text-[var(--color-brand-maroon)]"
               aria-label="Toggle menu"
             >
-              <div className="flex w-6 flex-col gap-1.5">
+              <div className="flex w-4 sm:w-6 flex-col gap-1 sm:gap-1.5">
                 <span
                   className={`h-[2px] w-full bg-current transition-all duration-300 ${
-                    isMobileMenuOpen ? "translate-y-[8px] rotate-45" : ""
+                    isMobileMenuOpen ? "translate-y-[6px] sm:translate-y-[8px] rotate-45" : ""
                   }`}
                 />
                 <span
@@ -99,7 +105,7 @@ export default function Header() {
                 />
                 <span
                   className={`h-[2px] w-full bg-current transition-all duration-300 ${
-                    isMobileMenuOpen ? "-translate-y-[8px] -rotate-45" : ""
+                    isMobileMenuOpen ? "-translate-y-[6px] sm:-translate-y-[8px] -rotate-45" : ""
                   }`}
                 />
               </div>

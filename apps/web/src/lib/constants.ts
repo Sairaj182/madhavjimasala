@@ -25,7 +25,7 @@ import type {
 
 // ── Brand Info ───────────────────────────────
 
-export const YEAR_OF_ESTABLISHMENT: number = 1970;
+export const YEAR_OF_ESTABLISHMENT: number = 1930;
 export const FAMILY_GENERATIONS: number = 3;
 export const SITE_INFO: SiteInfo = {
   name: "Madhavji Masala",
@@ -92,7 +92,7 @@ export const HERO_CONTENT: HeroContent = {
   subheadline:
     "Tradition's purest craft - Our signature spice blends are a gift of authentic flavors, cultivated with care and love.",
   description:
-    "From the fertile lands of Gujarat to kitchens worldwide, Madhavji Masala delivers purity in every pinch.",
+    "From the fertile lands of Gujarat to kitchens, Madhavji Masala delivers purity in every pinch.",
   primaryCta: { label: "Our Products", href: "/products" },
   secondaryCta: { label: "Know Our Story", href: "/about" },
   backgroundImage: "/images/hero/hero-banner.png",
@@ -523,13 +523,6 @@ export const PRODUCTS: Product[] = [
 
 export const TRUST_FACTORS: TrustFactor[] = [
   {
-    id: "tf-1",
-    icon: "shield-check",
-    title: "Quality Certified",
-    description: "Every batch is lab-tested and certified for purity, potency, and food safety standards.",
-    stat: "ISO 22000",
-  },
-  {
     id: "tf-2",
     icon: "beaker",
     title: "Expert Blending",
@@ -651,7 +644,7 @@ export const ABOUT_CONTENT: AboutContent = {
     story: [
       "Since our inception, Madhavji Masala has been more than a brand. It is a custodian of India's culinary soul. We began as a small apothecary of flavor, dedicated to preserving the ancient art that makes a meal a memory.",
       `Founded in ${YEAR_OF_ESTABLISHMENT} by Rasiklal Raithatha in the heart of Gujarat's spice country, we've grown from a humble grinding mill to one of the region's most trusted spice houses — without ever compromising on the principles that started it all.`,
-      `Today, ${FAMILY_GENERATIONS} generations of the Madhavji family continue this legacy, combining time-honored techniques with modern quality standards to deliver spices that honor tradition while meeting the demands of contemporary kitchens worldwide.`,
+      `Today, ${FAMILY_GENERATIONS} generations of the Madhavji family continue this legacy, combining time-honored techniques with modern quality standards to deliver spices that honor tradition while meeting the demands of contemporary kitchens.`,
     ],
     image: "/images/about/heritage.png",
   },
@@ -665,7 +658,7 @@ export const ABOUT_CONTENT: AboutContent = {
     title: "Our Mission",
     description:
       "Through ethical sourcing, artisanal processing, and rigorous scientific hygiene, we bridge the gap between ancient tradition and modern manufacturing excellence.",
-    highlights: ["FSSAI Certified", "ISO 22000 Compliant"],
+    highlights: ["FSSAI Certified"],
   },
   facility: {
     headline: "The Modern Apothecary",
@@ -683,13 +676,6 @@ export const CERTIFICATIONS: Certification[] = [
     description:
       "Licensed by the Food Safety and Standards Authority of India. Every product meets the stringent food safety requirements mandated for Indian food manufacturers.",
     icon: "shield",
-  },
-  {
-    id: "cert-2",
-    name: "ISO 22000:2018",
-    description:
-      "Our production facility is ISO 22000:2018 certified, ensuring a comprehensive food safety management system from sourcing to packaging.",
-    icon: "award",
   },
   {
     id: "cert-3",
@@ -759,7 +745,7 @@ export const PAGE_META: Record<string, PageMeta> = {
   home: {
     title: "Madhavji Masala : Pure Spices. Authentic Taste.",
     description:
-      "Premium Indian spices crafted with heritage techniques and modern quality standards. Explore our range of pure, lab-tested spices delivered from Gujarat to the world.",
+      "Premium Indian spices crafted with heritage techniques and modern quality standards. Explore our range of pure, lab-tested spices delivered from Gujarat to the customers.",
     keywords: ["Indian spices", "pure masala", "Gujarat spices", "organic turmeric", "premium spice brand"],
   },
   products: {
@@ -777,7 +763,7 @@ export const PAGE_META: Record<string, PageMeta> = {
   certifications: {
     title: "Certifications & Quality — Madhavji Masala",
     description:
-      "FSSAI certified, ISO 22000 compliant, and lab-tested for purity. Explore the quality standards behind every Madhavji Masala product.",
+      "FSSAI certified, and lab-tested for purity. Explore the quality standards behind every Madhavji Masala product.",
     keywords: ["FSSAI certified spices", "ISO spice company", "quality certified masala"],
   },
   contact: {

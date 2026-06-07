@@ -64,12 +64,12 @@ function ProductDetailContent({
             {/* Image Gallery */}
             <div>
               {/* Main Image */}
-              <div className="relative aspect-square overflow-hidden rounded-2xl bg-brand-cream">
+              <div className="relative aspect-square overflow-hidden rounded-2xl bg-white border border-[var(--color-brand-border)]">
                 <Image
                   src={product.images[selectedImage]}
                   alt={product.name}
                   fill
-                  className="object-cover"
+                  className="object-contain p-6 sm:p-8"
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   priority
                 />
@@ -88,7 +88,7 @@ function ProductDetailContent({
                           : "opacity-60 hover:opacity-100"
                       }`}
                     >
-                      <Image src={img} alt={`${product.name} view ${i + 1}`} fill className="object-cover" sizes="80px" />
+                      <Image src={img} alt={`${product.name} view ${i + 1}`} fill className="object-contain p-2 bg-white" sizes="80px" />
                     </button>
                   ))}
                 </div>
