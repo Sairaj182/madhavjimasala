@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { ReactNode } from "react";
 
 interface ScrollRevealProps {
-  children: React.ReactNode;
+  children: ReactNode;
   animation?: "fade-up" | "fade-in" | "fade-left" | "fade-right" | "scale-up";
-  duration?: string;
-  delay?: string;
+  duration?: string | number;
+  delay?: string | number;
   className?: string;
   threshold?: number;
 }
@@ -14,63 +15,66 @@ interface ScrollRevealProps {
 export function ScrollReveal({
   children,
   animation = "fade-up",
-  duration = "duration-700",
-  delay = "delay-0",
+  duration = 0.7,
+  delay = 0,
   className = "",
   threshold = 0.1,
 }: ScrollRevealProps) {
-  const [isVisible, setIsVisible] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  // Parse legacy Tailwind string delays/durations if present
+  const numericDelay =
+    typeof delay === "string" && delay.startsWith("delay-")
+      ? parseInt(delay.replace("delay-", "")) / 1000
+      : Number(delay) || 0;
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.unobserve(entry.target);
-        }
-      },
-      { threshold, rootMargin: "50px" }
-    );
+  const numericDuration =
+    typeof duration === "string" && duration.startsWith("duration-")
+      ? parseInt(duration.replace("duration-", "")) / 1000
+      : Number(duration) || 0.7;
 
-    const currentRef = ref.current;
-    if (currentRef) {
-      observer.observe(currentRef);
+  const getVariants = () => {
+    switch (animation) {
+      case "fade-up":
+        return {
+          hidden: { opacity: 0, y: 40 },
+          visible: { opacity: 1, y: 0 },
+        };
+      case "fade-in":
+        return {
+          hidden: { opacity: 0 },
+          visible: { opacity: 1 },
+        };
+      case "fade-left":
+        return {
+          hidden: { opacity: 0, x: 40 },
+          visible: { opacity: 1, x: 0 },
+        };
+      case "fade-right":
+        return {
+          hidden: { opacity: 0, x: -40 },
+          visible: { opacity: 1, x: 0 },
+        };
+      case "scale-up":
+        return {
+          hidden: { opacity: 0, scale: 0.95 },
+          visible: { opacity: 1, scale: 1 },
+        };
     }
-    return () => {
-      if (currentRef) observer.unobserve(currentRef);
-    };
-  }, [threshold]);
-
-  const baseClasses = `transition-all ease-out ${duration} ${delay} ${className}`;
-  
-  let hiddenClasses = "";
-  let visibleClasses = "opacity-100 translate-y-0 translate-x-0 scale-100";
-
-  switch (animation) {
-    case "fade-up":
-      hiddenClasses = "opacity-0 translate-y-12";
-      break;
-    case "fade-in":
-      hiddenClasses = "opacity-0";
-      break;
-    case "fade-left":
-      hiddenClasses = "opacity-0 translate-x-12";
-      break;
-    case "fade-right":
-      hiddenClasses = "opacity-0 -translate-x-12";
-      break;
-    case "scale-up":
-      hiddenClasses = "opacity-0 scale-95";
-      break;
-  }
+  };
 
   return (
-    <div
-      ref={ref}
-      className={`${baseClasses} ${isVisible ? visibleClasses : hiddenClasses}`}
+    <motion.div
+      className={className}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "0px 0px -50px 0px", amount: threshold }}
+      variants={getVariants()}
+      transition={{
+        duration: numericDuration,
+        delay: numericDelay,
+        ease: [0.21, 0.47, 0.32, 0.98], // smooth luxurious cubic bezier
+      }}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_LINKS, SITE_INFO } from "@/lib/constants";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -115,35 +116,65 @@ export default function Header() {
       </div>
 
       {/* Mobile Menu */}
-      <div
-        className={`absolute left-0 right-0 top-full overflow-hidden border-t border-brand-border bg-white shadow-xl transition-all duration-300 lg:hidden ${
-          isMobileMenuOpen ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
-        }`}
-      >
-        <nav className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-8">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`text-sm font-bold uppercase tracking-widest transition-colors ${
-                pathname === link.href
-                  ? "text-brand-maroon"
-                  : "text-brand-dark/70 hover:text-brand-maroon"
-              }`}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="absolute left-0 right-0 top-full overflow-hidden border-t border-brand-border bg-white shadow-xl lg:hidden"
+          >
+            <motion.nav 
+              initial="closed"
+              animate="open"
+              exit="closed"
+              variants={{
+                open: { transition: { staggerChildren: 0.05, delayChildren: 0.1 } },
+                closed: { transition: { staggerChildren: 0.05, staggerDirection: -1 } }
+              }}
+              className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-8"
             >
-              {link.label}
-            </Link>
-          ))}
-          <div className="mt-4 pt-4 border-t border-brand-border">
-            <Link
-              href="/contact"
-              className="inline-flex w-full items-center justify-center bg-brand-maroon px-6 py-3 text-xs font-bold uppercase tracking-widest text-white transition-all hover:bg-brand-maroon-dark"
-            >
-              Order in Bulk
-            </Link>
-          </div>
-        </nav>
-      </div>
+              {NAV_LINKS.map((link) => (
+                <motion.div
+                  key={link.href}
+                  variants={{
+                    closed: { opacity: 0, x: -15 },
+                    open: { opacity: 1, x: 0 }
+                  }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                >
+                  <Link
+                    href={link.href}
+                    className={`block text-sm font-bold uppercase tracking-widest transition-colors ${
+                      pathname === link.href
+                        ? "text-brand-maroon"
+                        : "text-brand-dark/70 hover:text-brand-maroon"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                </motion.div>
+              ))}
+              <motion.div 
+                variants={{
+                  closed: { opacity: 0, y: 10 },
+                  open: { opacity: 1, y: 0 }
+                }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="mt-4 pt-4 border-t border-brand-border"
+              >
+                <Link
+                  href="/contact"
+                  className="inline-flex w-full items-center justify-center bg-brand-maroon px-6 py-3 text-xs font-bold uppercase tracking-widest text-white transition-all hover:bg-brand-maroon-dark"
+                >
+                  Order in Bulk
+                </Link>
+              </motion.div>
+            </motion.nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

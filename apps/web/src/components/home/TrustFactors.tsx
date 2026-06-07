@@ -1,11 +1,14 @@
+"use client";
+
 import { TRUST_FACTORS } from "@/lib/constants";
 import { ScrollReveal } from "@/components/shared/ScrollReveal";
+import { motion } from "framer-motion";
 
 export default function TrustFactors() {
   return (
     <section className="bg-brand-cream py-20 lg:py-28 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-2">
           {TRUST_FACTORS.map((factor, index) => (
             <ScrollReveal 
               key={factor.id} 
@@ -13,8 +16,10 @@ export default function TrustFactors() {
               delay={`delay-${index * 100}`}
               className="h-full"
             >
-              <div
-                className="group relative rounded-2xl bg-white p-8 shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 h-full"
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="group relative rounded-2xl bg-white p-8 shadow-card transition-colors duration-300 hover:shadow-card-hover h-full"
               >
                 {/* Icon */}
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-brand-cream text-brand-maroon transition-colors duration-300 group-hover:bg-brand-maroon group-hover:text-white">
@@ -35,7 +40,7 @@ export default function TrustFactors() {
                 <p className="mt-2 text-sm leading-relaxed text-brand-gray">
                   {factor.description}
                 </p>
-              </div>
+              </motion.div>
             </ScrollReveal>
           ))}
         </div>

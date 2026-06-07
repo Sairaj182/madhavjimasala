@@ -18,14 +18,14 @@ export default function Footer() {
           <div className="lg:col-span-2">
             <Link href="/" className="inline-flex items-center gap-3 group">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              {/* <img
                 src="/images/madhavjimasala_logo_tbg.png"
                 alt={SITE_INFO.logoAlt}
                 width={56}
                 height={56}
                 className="h-11 w-11 sm:h-12 sm:w-12 lg:h-14 lg:w-14 transition-transform duration-300 group-hover:scale-105"
                 style={{ objectFit: 'contain', filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.15))' }}
-              />
+              /> */}
               <span className="text-2xl font-bold font-heading text-white">
                 {SITE_INFO.name}
               </span>

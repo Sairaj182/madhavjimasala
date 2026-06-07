@@ -17,7 +17,7 @@ export default function CtaBanner() {
                 </h2>
                 <p className="mt-6 max-w-md text-base leading-relaxed text-white/60">
                   Whether you&apos;re a restaurant chain, a retail brand, or a global
-                  exporter — Madhavji Masala offers bulk supply, custom blending,
+                  exporter - Madhavji Masala offers bulk supply, custom blending,
                   and white-label solutions tailored to your needs.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-4">

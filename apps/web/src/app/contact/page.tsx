@@ -30,7 +30,7 @@ export default function ContactPage() {
               Let&apos;s Talk Spices.
             </h1>
             <p className="mt-4 text-base leading-relaxed text-brand-gray">
-              From global wholesale inquiries to artisanal spice sourcing, our
+              From wholesale inquiries to artisanal spice sourcing, our
               team is ready to curate the perfect flavor profile for your
               business.
             </p>

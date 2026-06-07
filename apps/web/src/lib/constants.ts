@@ -530,13 +530,6 @@ export const TRUST_FACTORS: TrustFactor[] = [
     stat: "40+ Years",
   },
   {
-    id: "tf-3",
-    icon: "globe",
-    title: "Global Export",
-    description: "Trusted by businesses across 15+ countries for consistent quality and reliable supply.",
-    stat: "15+ Countries",
-  },
-  {
     id: "tf-4",
     icon: "leaf",
     title: "Pure & Natural",
@@ -550,21 +543,21 @@ export const TRUST_FACTORS: TrustFactor[] = [
 export const JOURNEY_STEPS: JourneyStep[] = [
   {
     id: "js-1",
-    title: "Sourcing",
-    description: "Hand-picked from trusted farms across India's finest spice-growing regions.",
-    image: "/images/process/sourcing.png",
+    title: "Grinding",
+    description: "Our state-of-the-art grinding technology ensures maximum flavor preservation and aroma in every blend.",
+    image: "/images/process/grinding.png"
   },
   {
     id: "js-2",
-    title: "Processing",
-    description: "Cleaned, sorted, and processed using state-of-the-art cryogenic grinding technology.",
-    image: "/images/process/grinding.png",
+    title: "Blending",
+    description: "Our master blenders combine generations of expertise with precision-ground spices to create authentic, consistent blends.",
+    image: "/images/process/blending.png",
   },
   {
     id: "js-3",
-    title: "Blending",
-    description: "Master blenders craft perfect flavor profiles using time-tested recipes.",
-    image: "/images/hero/hero-banner.png",
+    title: "Vibro Sifting",
+    description: "Our Vibro Sifting process ensures the perfect consistency and texture in every batch, free from lumps or impurities.",
+    image: "/images/process/vibro-sifting.png",
   },
   {
     id: "js-4",
@@ -649,9 +642,9 @@ export const ABOUT_CONTENT: AboutContent = {
     image: "/images/about/heritage.png",
   },
   vision: {
-    title: "Our Global Vision",
+    title: "Our Vision",
     description:
-      "To redefine the global standard of purity in the spice industry, ensuring that every household, regardless of geography, can access the authentic potent heart of traditional seasonings without compromise.",
+      "To redefine the standard of purity in the spice industry, ensuring that every household, regardless of geography, can access the authentic potent heart of traditional seasonings without compromise.",
     highlights: ["100+ Products & Forms", "Sustainable Cold Grinding"],
   },
   mission: {

@@ -1,7 +1,13 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { HERO_CONTENT } from "@/lib/constants";
 import { ScrollReveal } from "@/components/shared/ScrollReveal";
+
+const MotionLink = motion.create(Link);
+
 export default function HeroSection() {
   return (
     <section className="relative min-h-[85vh] flex items-center overflow-hidden">
@@ -51,27 +57,39 @@ export default function HeroSection() {
           {/* CTAs */}
           <ScrollReveal animation="fade-up" delay="delay-300">
             <div className="mt-8 flex flex-wrap gap-4">
-              <Link
+              <MotionLink
                 href={HERO_CONTENT.primaryCta.href}
-                className="group inline-flex items-center gap-2 rounded-full bg-brand-maroon px-7 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-brand-maroon-dark hover:shadow-[0_8px_30px_rgba(139,26,26,0.4)]"
+                whileHover="hover"
+                whileTap="tap"
+                variants={{
+                  hover: { scale: 1.05 },
+                  tap: { scale: 0.95 }
+                }}
+                className="group inline-flex items-center gap-2 rounded-full bg-brand-maroon px-7 py-3.5 text-sm font-semibold text-white transition-colors duration-300 hover:bg-brand-maroon-dark hover:shadow-[0_8px_30px_rgba(139,26,26,0.4)]"
               >
                 {HERO_CONTENT.primaryCta.label}
-                <svg
-                  className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+                <motion.svg
+                  className="h-4 w-4"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                   strokeWidth={2}
+                  variants={{
+                    hover: { x: 4 }
+                  }}
+                  transition={{ type: "spring", stiffness: 400 }}
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </Link>
-              <Link
+                </motion.svg>
+              </MotionLink>
+              <MotionLink
                 href={HERO_CONTENT.secondaryCta.href}
-                className="inline-flex items-center gap-2 rounded-full border border-white/30 px-7 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:border-white/60 hover:bg-white/10"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="inline-flex items-center gap-2 rounded-full border border-white/30 px-7 py-3.5 text-sm font-semibold text-white transition-colors duration-300 hover:border-white/60 hover:bg-white/10"
               >
                 {HERO_CONTENT.secondaryCta.label}
-              </Link>
+              </MotionLink>
             </div>
           </ScrollReveal>
         </div>
