@@ -105,11 +105,13 @@ export default function Footer() {
           <p>
             © {currentYear} {SITE_INFO.name}. All rights reserved.
           </p>
-          <p className="flex items-center gap-1">
-            Crafted with
-            <span className="text-brand-maroon">♥</span>
-            in Gujarat, India
-          </p>
+          <a href="https://sairajraithatha.me">
+            <p className="flex items-center gap-1">
+              Crafted with
+              <span className="text-brand-maroon">♥</span>
+              in Gujarat, India by <span className="text-white/70">Sairaj Raithatha</span>
+            </p>
+          </a>
         </div>
       </div>
     </footer>

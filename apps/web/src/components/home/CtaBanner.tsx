@@ -41,16 +41,16 @@ export default function CtaBanner() {
                 {/* Stats */}
                 <div className="mt-10 flex flex-wrap gap-4 sm:gap-8">
                   <div>
-                    <p className="text-2xl font-bold text-brand-gold">40+</p>
+                    <p className="text-2xl font-bold text-brand-gold">93+</p>
                     <p className="mt-1 text-xs text-white/50">Years Legacy</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-brand-gold">100+</p>
+                    <p className="text-2xl font-bold text-brand-gold">10+</p>
                     <p className="mt-1 text-xs text-white/50">Products</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-brand-gold">15+</p>
-                    <p className="mt-1 text-xs text-white/50">Countries</p>
+                    <p className="mt-1 text-xs text-white/50">Cities</p>
                   </div>
                 </div>
               </div>
@@ -58,7 +58,7 @@ export default function CtaBanner() {
               {/* Image */}
               <div className="relative hidden lg:block">
                 <Image
-                  src="/images/about/warehouse.png"
+                  src="/images/madhavjimasala_logo_rct.png"
                   alt="Madhavji Masala warehouse facility"
                   fill
                   className="object-cover"
