@@ -1,0 +1,33 @@
+
+> web@0.1.0 build C:\code\madhavjimasala\apps\web
+> next build
+
+▲ Next.js 16.2.6 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 5.4s
+  Running TypeScript ...
+  Finished TypeScript in 3.8s ...
+  Collecting page data using 12 workers ...
+  Generating static pages using 12 workers (0/9) ...
+  Generating static pages using 12 workers (2/9) 
+  Generating static pages using 12 workers (4/9) 
+  Generating static pages using 12 workers (6/9) 
+✓ Generating static pages using 12 workers (9/9) in 701ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /about
+├ ƒ /api/auth/[...all]
+├ ○ /certifications
+├ ○ /contact
+├ ○ /legacy
+├ ○ /products
+└ ƒ /products/[slug]
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
