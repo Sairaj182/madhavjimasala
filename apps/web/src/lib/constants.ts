@@ -557,7 +557,7 @@ export const JOURNEY_STEPS: JourneyStep[] = [
     id: "js-3",
     title: "Vibro Sifting",
     description: "Our Vibro Sifting process ensures the perfect consistency and texture in every batch, free from lumps or impurities.",
-    image: "/images/process/vibro-sifting.png",
+    image: "/images/process/vibro-sifter.png",
   },
   {
     id: "js-4",

@@ -22,21 +22,22 @@ export default function JourneySection() {
         {/* Journey Steps */}
         <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {JOURNEY_STEPS.map((step, index) => (
-            <ScrollReveal 
-              key={step.id} 
-              animation="fade-up" 
+            <ScrollReveal
+              key={step.id}
+              animation="fade-up"
               delay={`delay-${index * 100}`}
+              className="h-full"
             >
-              <div className="group relative">
+              <div className="group relative h-full">
                 {/* Connector Line (desktop) */}
                 {index < JOURNEY_STEPS.length - 1 && (
                   <div className="absolute right-0 top-1/3 hidden h-[2px] w-6 bg-brand-border lg:block" style={{ right: "-12px" }} />
                 )}
 
                 {/* Card */}
-                <div className="overflow-hidden rounded-2xl bg-brand-cream transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1">
+                <div className="flex flex-col h-full overflow-hidden rounded-2xl bg-brand-cream transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1">
                   {/* Image */}
-                  <div className="relative aspect-[4/3] overflow-hidden">
+                  <div className="relative aspect-[4/3] overflow-hidden shrink-0">
                     <Image
                       src={step.image}
                       alt={step.title}
@@ -52,7 +53,7 @@ export default function JourneySection() {
                   </div>
 
                   {/* Content */}
-                  <div className="p-5">
+                  <div className="flex flex-col flex-grow p-5">
                     <h3 className="font-heading text-lg font-bold text-brand-dark">
                       {step.title}
                     </h3>
