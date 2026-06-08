@@ -2,134 +2,211 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
 import { YEAR_OF_ESTABLISHMENT } from "@/lib/constants";
 
 export default function LogoSplash() {
-  const [showSplash, setShowSplash] = useState(false);
+  const [phase, setPhase] = useState<
+    "loading" | "reveal" | "exit" | "done"
+  >("loading");
+
+  const dismiss = useCallback(() => {
+    if (phase === "reveal") {
+      setPhase("exit");
+    }
+  }, [phase]);
 
   useEffect(() => {
     // Check if splash was already shown this session
     try {
-      if (!sessionStorage.getItem("madhavji-splash-shown")) {
-        setShowSplash(true);
-        const exitTimer = setTimeout(() => {
-          setShowSplash(false);
-          sessionStorage.setItem("madhavji-splash-shown", "1");
-        }, 3000);
-        return () => clearTimeout(exitTimer);
+      if (sessionStorage.getItem("madhavji-splash-shown")) {
+        setPhase("done");
+        return;
       }
     } catch {
       // SSR or sessionStorage unavailable
     }
+
+    // Phase timeline
+    const revealTimer = setTimeout(() => setPhase("reveal"), 300);
+    const exitTimer = setTimeout(() => setPhase("exit"), 3000);
+
+    return () => {
+      clearTimeout(revealTimer);
+      clearTimeout(exitTimer);
+    };
   }, []);
 
-  const dismiss = useCallback(() => {
-    setShowSplash(false);
-    try {
-      sessionStorage.setItem("madhavji-splash-shown", "1");
-    } catch {
-      // ignore
+  useEffect(() => {
+    if (phase === "exit") {
+      const timer = setTimeout(() => {
+        setPhase("done");
+        try {
+          sessionStorage.setItem("madhavji-splash-shown", "1");
+        } catch {
+          // ignore
+        }
+      }, 800);
+      return () => clearTimeout(timer);
     }
-  }, []);
+  }, [phase]);
+
+  if (phase === "done") return null;
 
   return (
-    <AnimatePresence>
-      {showSplash && (
-        <motion.div
-          onClick={dismiss}
-          role="presentation"
-          initial={{ opacity: 0, scale: 1 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 1.05 }}
-          transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-          className="fixed inset-0 z-[99999] flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-[linear-gradient(145deg,#1A0A0A_0%,#2D1010_30%,#1A0A0A_100%)]"
-        >
-          {/* Subtle radial ambient glow */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(212,160,23,0.06)_0%,transparent_70%)] pointer-events-none" />
+    <div
+      onClick={dismiss}
+      role="presentation"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 99999,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background:
+          "linear-gradient(145deg, #1A0A0A 0%, #2D1010 30%, #1A0A0A 100%)",
+        cursor: "pointer",
+        overflow: "hidden",
+        opacity: phase === "exit" ? 0 : 1,
+        transform: phase === "exit" ? "scale(1.05)" : "scale(1)",
+        transition:
+          "opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+        pointerEvents: phase === "exit" ? "none" : "auto",
+      }}
+    >
+      {/* Subtle radial ambient glow */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(ellipse at center, rgba(212, 160, 23, 0.06) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
 
-          {/* Animated background particles */}
-          <div className="absolute inset-0 pointer-events-none">
-            {Array.from({ length: 20 }).map((_, i) => (
-              <span
-                key={i}
-                className="splash-particle"
-                style={{
-                  left: `${10 + ((i * 37) % 80)}%`,
-                  top: `${5 + ((i * 53) % 90)}%`,
-                  animationDelay: `${0.2 + (i * 0.15)}s`,
-                  animationDuration: `${2.5 + (i % 3)}s`,
-                  width: `${3 + (i % 4)}px`,
-                  height: `${3 + (i % 4)}px`,
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Radial glow behind logo */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.2, delay: 0.2, ease: "easeOut" }}
-            className="absolute w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(212,160,23,0.15)_0%,rgba(139,26,26,0.08)_40%,transparent_70%)] pointer-events-none"
-          />
-
-          {/* Logo */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.3, rotate: -10 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            transition={{
-              duration: 0.8,
-              delay: 0.3,
-              ease: [0.34, 1.56, 0.64, 1],
+      {/* Animated background particles */}
+      <div
+        style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+      >
+        {Array.from({ length: 20 }).map((_, i) => (
+          <span
+            key={i}
+            className="splash-particle"
+            style={{
+              left: `${10 + ((i * 37) % 80)}%`,
+              top: `${5 + ((i * 53) % 90)}%`,
+              animationDelay: `${0.2 + (i * 0.15)}s`,
+              animationDuration: `${2.5 + (i % 3)}s`,
+              width: `${3 + (i % 4)}px`,
+              height: `${3 + (i % 4)}px`,
             }}
-            className="relative w-[260px] h-[260px]"
-          >
-            <div className="splash-ring" />
-            <Image
-              src="/images/madhavjimasala_OnLoadLogo.png"
-              alt="Madhavji Masala"
-              width={260}
-              height={260}
-              priority
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "contain",
-                filter: "drop-shadow(0 0 30px rgba(212, 160, 23, 0.3)) drop-shadow(0 4px 20px rgba(0, 0, 0, 0.5))",
-              }}
-            />
-          </motion.div>
-
-          {/* Tagline */}
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.9, ease: "easeOut" }}
-            className="mt-6 font-playfair text-[1.35rem] font-medium tracking-[0.15em] text-[rgba(232,197,71,0.9)] text-center"
-          >
-            Pure Spices. Authentic Taste.
-          </motion.p>
-
-          {/* Decorative line */}
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: 120 }}
-            transition={{ duration: 0.8, delay: 1.2, ease: "easeOut" }}
-            className="h-px mt-4 bg-[linear-gradient(90deg,transparent,rgba(212,160,23,0.5),transparent)]"
           />
+        ))}
+      </div>
 
-          {/* Since 1982 */}
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 1.5, ease: "easeOut" }}
-            className="mt-3 font-sans text-xs font-normal tracking-[0.3em] uppercase text-white/35"
-          >
-            Since {YEAR_OF_ESTABLISHMENT}
-          </motion.p>
-        </motion.div>
-      )}
-    </AnimatePresence>
+      {/* Radial glow behind logo */}
+      <div
+        style={{
+          position: "absolute",
+          width: 400,
+          height: 400,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(212, 160, 23, 0.15) 0%, rgba(139, 26, 26, 0.08) 40%, transparent 70%)",
+          opacity: phase === "reveal" ? 1 : 0,
+          transform: phase === "reveal" ? "scale(1)" : "scale(0.5)",
+          transition:
+            "opacity 1.2s ease-out 0.2s, transform 1.2s ease-out 0.2s",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Logo */}
+      <div
+        style={{
+          position: "relative",
+          width: 260,
+          height: 260,
+          opacity: phase === "reveal" ? 1 : 0,
+          transform:
+            phase === "reveal"
+              ? "scale(1) rotate(0deg)"
+              : "scale(0.3) rotate(-10deg)",
+          transition:
+            "opacity 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s",
+        }}
+      >
+        {/* Pulsing ring */}
+        <div className="splash-ring" />
+        <Image
+          src="/images/madhavjimasala_OnLoadLogo.png"
+          alt="Madhavji Masala"
+          width={260}
+          height={260}
+          priority
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+            filter:
+              "drop-shadow(0 0 30px rgba(212, 160, 23, 0.3)) drop-shadow(0 4px 20px rgba(0, 0, 0, 0.5))",
+          }}
+        />
+      </div>
+
+      {/* Tagline */}
+      <p
+        style={{
+          marginTop: "1.5rem",
+          fontFamily: "'Playfair Display', Georgia, serif",
+          fontSize: "1.35rem",
+          fontWeight: 500,
+          letterSpacing: "0.15em",
+          color: "rgba(232, 197, 71, 0.9)",
+          textAlign: "center",
+          opacity: phase === "reveal" ? 1 : 0,
+          transform:
+            phase === "reveal" ? "translateY(0)" : "translateY(16px)",
+          transition:
+            "opacity 0.7s ease-out 0.9s, transform 0.7s ease-out 0.9s",
+        }}
+      >
+        Pure Spices. Authentic Taste.
+      </p>
+
+      {/* Decorative line */}
+      <div
+        style={{
+          width: phase === "reveal" ? 120 : 0,
+          height: 1,
+          marginTop: "1rem",
+          background:
+            "linear-gradient(90deg, transparent, rgba(212, 160, 23, 0.5), transparent)",
+          transition: "width 0.8s ease-out 1.2s",
+        }}
+      />
+
+      {/* Since 1982 */}
+      <p
+        style={{
+          marginTop: "0.75rem",
+          fontFamily: "'Inter', system-ui, sans-serif",
+          fontSize: "0.75rem",
+          fontWeight: 400,
+          letterSpacing: "0.3em",
+          textTransform: "uppercase" as const,
+          color: "rgba(255, 255, 255, 0.35)",
+          opacity: phase === "reveal" ? 1 : 0,
+          transform:
+            phase === "reveal" ? "translateY(0)" : "translateY(10px)",
+          transition:
+            "opacity 0.6s ease-out 1.5s, transform 0.6s ease-out 1.5s",
+        }}
+      >
+        Since {YEAR_OF_ESTABLISHMENT}
+      </p>
+    </div>
   );
 }
