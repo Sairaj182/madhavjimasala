@@ -19,9 +19,8 @@ export default function LegacyPage() {
       <LegacyHero />
       <JourneyTimeline />
       <LegacyValues />
-      <ThenAndNow />
-      <FamilyTree />
       <CurrentLeadership />
+      <ThenAndNow />
       <LegacyCounters />
       <ClosingStatement />
     </main>

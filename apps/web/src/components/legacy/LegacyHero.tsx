@@ -3,8 +3,13 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useRef } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 
-export default function LegacyHero() {
+interface LegacyHeroProps {
+  showCta?: boolean;
+}
+
+export default function LegacyHero({ showCta = false }: LegacyHeroProps) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -54,6 +59,22 @@ export default function LegacyHero() {
             <p className="text-xs md:text-base lg:text-lg text-[var(--color-brand-dark-light)] leading-relaxed font-[family-name:var(--font-body)] border-l-2 border-[var(--color-brand-gold)] pl-3 md:pl-6">
               From a small family enterprise founded in 1930 to a trusted name in spices today, the Madhavji story is one of dedication, quality and family values.
             </p>
+
+            {showCta && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
+                className="mt-6 md:mt-8"
+              >
+                <Link 
+                  href="/legacy" 
+                  className="inline-flex items-center px-6 py-3 text-sm font-semibold text-white bg-[var(--color-brand-maroon)] rounded-full hover:bg-[var(--color-brand-maroon-dark)] hover:-translate-y-0.5 transition-all shadow-lg hover:shadow-xl"
+                >
+                  <p className='animate-blink'>View More</p>
+                </Link>
+              </motion.div>
+            )}
           </motion.div>
 
           {/* Right Image with Parallax */}
@@ -62,9 +83,10 @@ export default function LegacyHero() {
             className="w-1/2 relative h-[250px] md:h-[400px] lg:h-[550px] rounded-2xl overflow-hidden shadow-[var(--shadow-elevated)]"
           >
             <Image 
-              src="https://images.unsplash.com/photo-1596495578065-6e0763fa1178?q=80&w=2071&auto=format&fit=crop"
+              src="/images/about/legacy/MadhavjiNanji.png"
               alt="Vintage family legacy"
               fill
+              sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover"
               priority
             />

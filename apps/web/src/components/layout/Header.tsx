@@ -51,11 +51,11 @@ export default function Header() {
 
             {/* Typography */}
             <div className="flex flex-col ml-3 sm:ml-0 justify-center">
-              <span className="text-base sm:text-lg lg:text-xl font-bold font-heading text-[var(--color-brand-maroon-dark)] tracking-wide truncate leading-tight group-hover:text-[var(--color-brand-maroon)] transition-colors">
+              <span className="text-base sm:text-lg lg:text-xl font-bold font-heading text-[var(--color-brand-name)] tracking-wide truncate leading-tight group-hover:text-[var(--color-brand-dark)] transition-colors font-serif">
                 {SITE_INFO.name}
               </span>
               <span className="block text-[7px] sm:text-[8px] lg:text-[9px] tracking-[0.15em] sm:tracking-[0.25em] uppercase text-[var(--color-brand-gold)] font-semibold opacity-90 mt-0.5">
-                Pure Spices. Authentic Taste.
+                The Bagasrawala's
               </span>
             </div>
           </Link>

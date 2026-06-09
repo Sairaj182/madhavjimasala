@@ -27,7 +27,7 @@ export default function JourneyTimeline() {
             viewport={{ once: true }}
             className="text-3xl lg:text-4xl font-bold text-[var(--color-brand-maroon)] mb-4 font-[family-name:var(--font-heading)]"
           >
-            Journey of Madhavji
+            Journey of Madhavji Masala
           </motion.h2>
           <motion.p 
             initial={{ opacity: 0, y: 20 }}

@@ -29,15 +29,15 @@ export default function HeroSection() {
         <div className="max-w-2xl">
           {/* Badge */}
           <ScrollReveal animation="fade-in">
-            <div className="inline-flex items-center gap-2 rounded-full bg-brand-gold/20 px-4 py-1.5 text-xs font-semibold tracking-widest text-brand-gold">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-gold" />
+            <div className="inline-flex items-center gap-2 rounded-full bg-brand-gold/20 px-3 py-1.5 text-xs font-semibold tracking-widest text-brand-gold">
+              <span className="h-1.5 w-1.5 rounded-full bg-brand-gold animate-blink" />
               {HERO_CONTENT.badge}
             </div>
           </ScrollReveal>
 
           {/* Headline */}
           <ScrollReveal animation="fade-up" delay="delay-100">
-            <h1 className="mt-6 font-heading text-4xl font-bold leading-[1.1] text-white sm:text-5xl lg:text-7xl">
+            <h1 className="mt-6 font-heading text-3xl font-bold leading-[1.1] text-white sm:text-4xl lg:text-6xl">
               {HERO_CONTENT.headline.split("\n").map((line, i) => (
                 <span key={i}>
                   {line}

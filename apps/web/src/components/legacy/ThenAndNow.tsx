@@ -52,7 +52,7 @@ export default function ThenAndNow() {
           >
             <div className="relative h-[150px] lg:h-[400px] w-full rounded-2xl overflow-hidden mb-4 md:mb-6 shadow-2xl">
               <Image 
-                src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=1974&auto=format&fit=crop"
+                src=""
                 alt="Historical Madhavji Shop"
                 fill
                 className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
@@ -80,7 +80,7 @@ export default function ThenAndNow() {
           >
             <div className="relative h-[150px] lg:h-[400px] w-full rounded-2xl overflow-hidden mb-4 md:mb-6 shadow-2xl">
               <Image 
-                src="https://images.unsplash.com/photo-1621946028120-c08b535d4bdf?q=80&w=2069&auto=format&fit=crop"
+                src=""
                 alt="Modern Madhavji Masala Facility"
                 fill
                 className="object-cover transition-all duration-700 group-hover:scale-105"
