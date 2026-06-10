@@ -20,7 +20,7 @@ export default function JourneySection() {
         </ScrollReveal>
 
         {/* Journey Steps */}
-        <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-16 grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
           {JOURNEY_STEPS.map((step, index) => (
             <ScrollReveal
               key={step.id}
@@ -47,17 +47,17 @@ export default function JourneySection() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                     {/* Step Number */}
-                    <div className="absolute bottom-3 left-3 flex h-8 w-8 items-center justify-center rounded-full bg-brand-maroon text-xs font-bold text-white">
+                    <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-brand-maroon text-[10px] sm:text-xs font-bold text-white">
                       {String(index + 1).padStart(2, "0")}
                     </div>
                   </div>
 
                   {/* Content */}
-                  <div className="flex flex-col flex-grow p-5">
-                    <h3 className="font-heading text-lg font-bold text-brand-dark">
+                  <div className="flex flex-col flex-grow p-3 sm:p-5">
+                    <h3 className="font-heading text-sm sm:text-lg font-bold text-brand-dark">
                       {step.title}
                     </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-brand-gray">
+                    <p className="mt-1 sm:mt-2 text-[10px] sm:text-sm leading-relaxed text-brand-gray line-clamp-3 sm:line-clamp-none">
                       {step.description}
                     </p>
                   </div>

@@ -46,7 +46,7 @@ export default function CurrentLeadership() {
                 <div className="absolute inset-0 rounded-full bg-[var(--color-brand-gold)] opacity-0 group-hover:opacity-30 blur-2xl transition-all duration-700" />
                 
                 {/* Portrait */}
-                <div className="relative w-24 h-24 md:w-48 md:h-48 lg:w-64 lg:h-64 rounded-full overflow-hidden border-2 md:border-4 border-[var(--color-brand-gold)]/20 shadow-xl group-hover:border-[var(--color-brand-gold)] transition-colors duration-500 z-10 bg-white">
+                <div className="relative w-30 h-30 md:w-48 md:h-48 lg:w-64 lg:h-64 rounded-full overflow-hidden border-2 md:border-4 border-[var(--color-brand-gold)]/20 shadow-xl group-hover:border-[var(--color-brand-gold)] transition-colors duration-500 z-10 bg-white">
                   <Image 
                     src={leader.image}
                     alt={leader.name}

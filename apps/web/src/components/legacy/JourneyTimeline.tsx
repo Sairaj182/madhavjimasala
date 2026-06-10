@@ -16,7 +16,7 @@ export default function JourneyTimeline() {
   const lineHeight = useTransform(scrollYProgress, [0, 1], ['0%', '100%']);
 
   return (
-    <section className="py-16 bg-white relative overflow-hidden" ref={containerRef}>
+    <section className="py-16 bg-[var(--color-brand-maroon)] relative overflow-hidden" ref={containerRef}>
       <div className="container mx-auto px-4 lg:px-8 relative">
         
         {/* Section Header */}
@@ -25,7 +25,7 @@ export default function JourneyTimeline() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-3xl lg:text-4xl font-bold text-[var(--color-brand-maroon)] mb-4 font-[family-name:var(--font-heading)]"
+            className="text-3xl lg:text-4xl font-bold text-white mb-4 font-[family-name:var(--font-heading)]"
           >
             Journey of Madhavji Masala
           </motion.h2>
@@ -34,7 +34,7 @@ export default function JourneyTimeline() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-base text-[var(--color-brand-gray)]"
+            className="text-base text-white/75"
           >
             A timeline of dedication, resilience, and evolving family legacy.
           </motion.p>
@@ -66,20 +66,21 @@ export default function JourneyTimeline() {
                   <div className="absolute left-1/2 w-4 h-4 rounded-full bg-[var(--color-brand-gold)] border-4 border-white shadow-md z-10 -translate-x-1/2" />
 
                   {/* Content Card */}
-                  <div className={`w-1/2 ${isEven ? 'pr-4 md:pr-12 text-right' : 'pl-4 md:pl-12 text-left'}`}>
-                    <div className={`p-4 md:p-8 rounded-2xl ${milestone.isHighlighted ? 'bg-[var(--color-brand-cream)] border border-[var(--color-brand-gold)]/30 shadow-[var(--shadow-elevated)]' : 'bg-white shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)]'} transition-shadow duration-300 relative overflow-hidden group`}>
+                  {/* <div className={`w-1/2 ${isEven ? 'pr-4 md:pr-12 text-right' : 'pl-4 md:pl-12 text-left'}`}> */}
+                  <div className={`w-1/2 pr-4 md:pr-12 text-center`}>
+                    <div className={`p-4 md:p-8 rounded-2xl ${'hover:shadow-[var(--shadow-card-hover)]'} transition-shadow duration-300 relative overflow-hidden group`}>
                       
-                      {milestone.isHighlighted && (
+                      {/* {milestone.isHighlighted && (
                         <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-brand-gold)]/5 to-transparent pointer-events-none" />
-                      )}
+                      )} */}
 
                       <span className="inline-block text-xl md:text-3xl font-bold text-[var(--color-brand-gold)] mb-1 md:mb-2 font-[family-name:var(--font-heading)]">
                         {milestone.year}
                       </span>
-                      <h3 className="text-base md:text-xl font-bold text-[var(--color-brand-maroon)] mb-2 md:mb-3 font-[family-name:var(--font-heading)]">
+                      <h3 className="text-base md:text-xl font-bold text-white mb-2 md:mb-3 font-[family-name:var(--font-heading)]">
                         {milestone.title}
                       </h3>
-                      <div className="text-xs md:text-base text-[var(--color-brand-dark-light)] whitespace-pre-wrap leading-relaxed relative z-10">
+                      <div className="text-xs md:text-base text-white/75 whitespace-pre-wrap leading-relaxed relative z-10">
                         {milestone.content}
                       </div>
                     </div>

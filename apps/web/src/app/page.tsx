@@ -11,8 +11,8 @@ export default function HomePage() {
     <>
       <HeroSection />
       <SignatureBlends />
-      <TrustFactors />
       <LegacyHero showCta={true} />
+      <TrustFactors />
       <JourneySection />
       <TestimonialsSection />
       <CtaBanner />

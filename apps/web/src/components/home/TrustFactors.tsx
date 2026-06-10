@@ -6,9 +6,9 @@ import { motion } from "framer-motion";
 
 export default function TrustFactors() {
   return (
-    <section className="bg-brand-cream py-20 lg:py-28 overflow-hidden">
+    <section className="bg-brand-cream/90 py-20 lg:py-28 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-2">
+        <div className="grid grid-cols-2 gap-4 sm:gap-8 lg:grid-cols-2">
           {TRUST_FACTORS.map((factor, index) => (
             <ScrollReveal 
               key={factor.id} 
@@ -19,10 +19,10 @@ export default function TrustFactors() {
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className="group relative rounded-2xl bg-white p-8 shadow-card transition-colors duration-300 hover:shadow-card-hover h-full"
+                className="group relative rounded-2xl bg-white p-4 sm:p-6 lg:p-8 shadow-card transition-colors duration-300 hover:shadow-card-hover h-full"
               >
                 {/* Icon */}
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-brand-cream text-brand-maroon transition-colors duration-300 group-hover:bg-brand-maroon group-hover:text-white">
+                <div className="flex h-10 w-10 sm:h-12 sm:w-12 lg:h-14 lg:w-14 items-center justify-center rounded-xl bg-brand-cream text-brand-maroon transition-colors duration-300 group-hover:bg-brand-maroon group-hover:text-white">
                   <TrustIcon name={factor.icon} />
                 </div>
 
@@ -34,10 +34,10 @@ export default function TrustFactors() {
                 )}
 
                 {/* Title & Description */}
-                <h3 className="mt-3 font-heading text-lg font-bold text-brand-dark">
+                <h3 className="mt-3 font-heading text-base sm:text-lg font-bold text-brand-dark">
                   {factor.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-brand-gray">
+                <p className="mt-1 sm:mt-2 text-xs sm:text-sm leading-relaxed text-brand-gray line-clamp-4 sm:line-clamp-none">
                   {factor.description}
                 </p>
               </motion.div>

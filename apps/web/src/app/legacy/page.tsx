@@ -1,8 +1,8 @@
 import { Metadata } from 'next';
 import LegacyHero from '@/components/legacy/LegacyHero';
 import JourneyTimeline from '@/components/legacy/JourneyTimeline';
-import FamilyTree from '@/components/legacy/FamilyTree';
-import LegacyValues from '@/components/legacy/LegacyValues';
+// import FamilyTree from '@/components/legacy/FamilyTree';
+// import LegacyValues from '@/components/legacy/LegacyValues';
 import ThenAndNow from '@/components/legacy/ThenAndNow';
 import CurrentLeadership from '@/components/legacy/CurrentLeadership';
 import LegacyCounters from '@/components/legacy/LegacyCounters';
@@ -18,8 +18,8 @@ export default function LegacyPage() {
     <main className="bg-white min-h-screen">
       <LegacyHero />
       <JourneyTimeline />
-      <LegacyValues />
       <CurrentLeadership />
+      {/* <LegacyValues /> */}
       <ThenAndNow />
       <LegacyCounters />
       <ClosingStatement />
