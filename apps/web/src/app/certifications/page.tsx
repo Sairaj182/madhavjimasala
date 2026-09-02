@@ -1,25 +1,31 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CERTIFICATIONS, PAGE_META } from "@/lib/constants";
+import SectionDivider from "@/components/shared/SectionDivider";
 
 export const metadata: Metadata = {
   title: PAGE_META.certifications.title,
   description: PAGE_META.certifications.description,
 };
 
+const FLOATING_PARTICLES = [
+  { size: 4, top: "15%", right: "20%", delay: 0.2, duration: 5.5 },
+  { size: 3, top: "60%", right: "10%", delay: 1.0, duration: 4.8 },
+  { size: 5, top: "35%", left: "15%", delay: 0.8, duration: 6 },
+  { size: 2, top: "80%", left: "25%", delay: 1.5, duration: 5 },
+];
+
 export default function CertificationsPage() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-brand-cream py-16 lg:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-gold">
-              Quality Assurance
-            </p>
-            <h1 className="mt-4 font-heading text-4xl font-bold text-brand-dark sm:text-5xl">
+      <section className="bg-brand-cream py-16 lg:py-24 noise-overlay">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="max-w-3xl mx-auto text-center">
+            <span className="section-eyebrow">Quality Assurance</span>
+            <h1 className="mt-4 font-heading text-4xl font-bold text-brand-dark sm:text-5xl lg:text-6xl">
               Certifications &{" "}
-              <span className="text-brand-maroon">Standards</span>
+              <span className="block text-brand-maroon mt-2">Standards</span>
             </h1>
             <p className="mt-6 text-base leading-relaxed text-brand-gray">
               Every Madhavji Masala product is backed by rigorous certifications
@@ -31,20 +37,20 @@ export default function CertificationsPage() {
       </section>
 
       {/* Certifications Grid */}
-      <section className="py-16 lg:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+      <section className="py-16 lg:py-24 noise-overlay">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
             {CERTIFICATIONS.map((cert) => (
               <div
                 key={cert.id}
-                className="group rounded-2xl border border-brand-border bg-white p-8 transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 hover:border-brand-maroon/20"
+                className="gold-accent-left group rounded-2xl border border-transparent bg-white p-8 transition-all duration-300 hover:shadow-gold-glow hover:-translate-y-1 hover:border-brand-gold/20"
               >
                 {/* Icon */}
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-brand-cream text-brand-maroon transition-colors duration-300 group-hover:bg-brand-maroon group-hover:text-white">
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-brand-maroon/5 text-brand-maroon transition-all duration-300 group-hover:bg-brand-maroon group-hover:text-white group-hover:shadow-[0_4px_16px_rgba(139,26,26,0.25)]">
                   <CertIcon name={cert.icon} />
                 </div>
 
-                <h3 className="mt-6 font-heading text-xl font-bold text-brand-dark">
+                <h3 className="mt-6 font-heading text-xl font-bold text-brand-dark group-hover:text-brand-maroon transition-colors">
                   {cert.name}
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-brand-gray">
@@ -56,12 +62,40 @@ export default function CertificationsPage() {
         </div>
       </section>
 
+      <SectionDivider variant="diamond" />
+
       {/* Quality Process */}
-      <section className="bg-brand-dark py-16 lg:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="relative bg-brand-dark py-20 lg:py-28 overflow-hidden">
+        {/* Subtle warm gradient wash */}
+        <div
+          className="absolute inset-0 opacity-15 z-0"
+          style={{
+            background: "radial-gradient(circle at 70% 30%, rgba(139,26,26,0.3) 0%, transparent 60%)",
+          }}
+        />
+
+        {/* Floating particles */}
+        {FLOATING_PARTICLES.map((p, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full pointer-events-none z-0"
+            style={{
+              width: p.size,
+              height: p.size,
+              top: p.top,
+              right: p.right,
+              left: p.left,
+              background: `radial-gradient(circle, rgba(212,160,23,0.6), rgba(212,160,23,0.1))`,
+              animation: `gentle-float ${p.duration}s ease-in-out ${p.delay}s infinite`,
+            }}
+          />
+        ))}
+
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center">
-            <h2 className="font-heading text-3xl font-bold text-white sm:text-4xl">
-              Our Quality Testing Process
+            <span className="section-eyebrow !text-brand-gold/70">24-Layer Protocol</span>
+            <h2 className="mt-4 font-heading text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
+              Our Quality <span className="text-brand-gold">Testing Process</span>
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-white/60">
               Every batch of Madhavji Masala undergoes a comprehensive 24-layer
@@ -69,7 +103,10 @@ export default function CertificationsPage() {
             </p>
           </div>
 
-          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 relative">
+             {/* Desktop Connector Line */}
+             <div className="hidden lg:block absolute top-10 left-[12%] right-[12%] h-px border-t border-dashed border-brand-gold/30 z-0" />
+
             {[
               {
                 step: "01",
@@ -94,26 +131,30 @@ export default function CertificationsPage() {
             ].map((item) => (
               <div
                 key={item.step}
-                className="rounded-2xl border border-white/10 p-6 transition-all duration-300 hover:border-brand-gold/30 hover:bg-white/5"
+                className="relative group rounded-2xl border border-brand-gold/20 bg-white/5 backdrop-blur-sm p-8 transition-all duration-300 hover:border-brand-gold hover:bg-white/10 hover:-translate-y-2 hover:shadow-[0_8px_30px_rgba(212,160,23,0.15)] z-10"
               >
-                <span className="text-2xl font-bold font-heading text-brand-gold">
-                  {item.step}
-                </span>
-                <h3 className="mt-3 text-lg font-semibold text-white">
+                <div className="inline-block rounded-full bg-brand-gold/10 px-4 py-1.5 mb-4 border border-brand-gold/30">
+                  <span className="text-2xl font-bold font-heading text-brand-gold drop-shadow-sm">
+                    {item.step}
+                  </span>
+                </div>
+                <h3 className="text-lg font-semibold text-white group-hover:text-brand-gold-light transition-colors">
                   {item.title}
                 </h3>
-                <p className="mt-2 text-sm text-white/50">{item.desc}</p>
+                <p className="mt-3 text-sm leading-relaxed text-white/60 group-hover:text-white/80 transition-colors">
+                  {item.desc}
+                </p>
               </div>
             ))}
           </div>
 
-          <div className="mt-12 text-center">
+          <div className="mt-16 text-center">
             <Link
               href="/contact"
-              className="inline-flex items-center gap-2 rounded-full bg-brand-maroon px-8 py-4 text-sm font-semibold text-white transition-all duration-300 hover:bg-brand-maroon-light hover:shadow-lg"
+              className="group inline-flex items-center gap-2 rounded-full bg-brand-maroon px-8 py-4 text-sm font-semibold text-white transition-all duration-300 hover:bg-brand-maroon-dark hover:shadow-[0_8px_30px_rgba(139,26,26,0.35)] hover:-translate-y-0.5"
             >
               Request Certificate of Analysis
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
             </Link>
@@ -125,7 +166,7 @@ export default function CertificationsPage() {
 }
 
 function CertIcon({ name }: { name: string }) {
-  const cls = "h-6 w-6";
+  const cls = "h-7 w-7";
   switch (name) {
     case "shield":
       return (
