@@ -28,7 +28,7 @@ export default function TestimonialsSection() {
       company: formData.company,
       quote: formData.quote,
       rating: Number(formData.rating),
-      image: "" // Add empty image if required by type
+      image: ""
     };
 
     setTestimonialsList((prev) => [newTestimonial, ...prev]);
@@ -37,13 +37,21 @@ export default function TestimonialsSection() {
   };
 
   return (
-    <section className="bg-brand-cream py-20 lg:py-28 overflow-hidden">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section className="bg-brand-cream py-20 lg:py-28 overflow-hidden relative noise-overlay">
+      {/* Large decorative quote watermark */}
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 opacity-[0.03] pointer-events-none select-none z-0">
+        <svg className="h-48 sm:h-64 w-48 sm:w-64 text-brand-maroon" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10H14.017zM0 21v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151C7.563 6.068 6 8.789 6 11h4v10H0z" />
+        </svg>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
         <ScrollReveal animation="fade-up">
           <div className="text-center">
-            <h2 className="font-heading text-3xl font-bold text-brand-dark sm:text-4xl">
-              Trusted by Culinary Experts
+            <span className="section-eyebrow">Testimonials</span>
+            <h2 className="mt-4 font-heading text-3xl font-bold text-brand-dark sm:text-4xl lg:text-5xl">
+              Trusted by <span className="text-brand-maroon">Culinary Experts</span>
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-brand-gray">
               From Michelin-star kitchens to family homes, here&apos;s what our
@@ -55,11 +63,11 @@ export default function TestimonialsSection() {
         {/* Testimonial Cards Marquee */}
         <ScrollReveal animation="fade-up" delay="delay-200">
           <div className="mt-14 relative w-full overflow-hidden">
-            {/* Gradient fading edges for better visual effect */}
+            {/* Gradient fading edges */}
             <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 sm:w-24 bg-gradient-to-r from-brand-cream to-transparent" />
             <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 sm:w-24 bg-gradient-to-l from-brand-cream to-transparent" />
 
-            <div 
+            <div
               className={`flex w-max gap-6 sm:gap-8 animate-[marquee_40s_linear_infinite] ${isPaused ? '[animation-play-state:paused]' : ''}`}
               onMouseEnter={() => setIsPaused(true)}
               onMouseLeave={() => setIsPaused(false)}
@@ -67,10 +75,10 @@ export default function TestimonialsSection() {
             >
               {[...testimonialsList, ...testimonialsList].map((testimonial, index) => (
                 <div key={`${testimonial.id}-${index}`} className="w-[300px] sm:w-[380px] shrink-0 py-2">
-                  <div className="group relative rounded-2xl bg-white p-6 sm:p-8 shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 h-full flex flex-col">
+                  <div className="group relative rounded-2xl bg-white p-6 sm:p-8 shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 h-full flex flex-col border-t-2 border-brand-gold/30">
                     {/* Quote Mark */}
-                    <div className="absolute -top-3 left-6 flex h-10 w-10 items-center justify-center rounded-full bg-brand-maroon text-white">
-                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                    <div className="absolute -top-3 left-6 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-brand-maroon to-brand-maroon-dark text-white shadow-[0_4px_12px_rgba(139,26,26,0.3)]">
+                      <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10H14.017zM0 21v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151C7.563 6.068 6 8.789 6 11h4v10H0z" />
                       </svg>
                     </div>
@@ -78,7 +86,7 @@ export default function TestimonialsSection() {
                     {/* Stars */}
                     <div className="mt-4 flex gap-0.5">
                       {Array.from({ length: testimonial.rating }).map((_, i) => (
-                        <svg key={i} className="h-4 w-4 text-brand-gold" fill="currentColor" viewBox="0 0 20 20">
+                        <svg key={i} className="h-4 w-4 text-brand-gold drop-shadow-sm" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
                       ))}
@@ -90,9 +98,9 @@ export default function TestimonialsSection() {
                     </p>
 
                     {/* Author */}
-                    <div className="mt-6 flex items-center gap-3 border-t border-brand-border pt-4">
-                      {/* Avatar circle */}
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-cream text-sm font-bold text-brand-maroon">
+                    <div className="mt-6 flex items-center gap-3 border-t border-brand-border/60 pt-4">
+                      {/* Avatar circle with gold ring */}
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-cream text-sm font-bold text-brand-maroon ring-2 ring-brand-gold/30 ring-offset-1 ring-offset-white">
                         {testimonial.name
                           .split(" ")
                           .map((n) => n[0])
@@ -118,11 +126,14 @@ export default function TestimonialsSection() {
         {/* Add Compliment Button */}
         <ScrollReveal animation="fade-up" delay="delay-300">
           <div className="mt-12 flex justify-center">
-            <button 
+            <button
               onClick={() => setIsModalOpen(true)}
-              className="rounded-full bg-brand-maroon px-8 py-3 font-semibold text-white transition-all hover:bg-brand-maroon-dark hover:scale-105 active:scale-95 shadow-md"
+              className="group inline-flex items-center gap-2 rounded-full border-2 border-brand-maroon/30 bg-transparent px-8 py-3.5 font-semibold text-brand-maroon transition-all duration-300 hover:bg-brand-maroon hover:text-white hover:border-brand-maroon hover:shadow-[0_8px_30px_rgba(139,26,26,0.25)]"
             >
-              Add Compliment
+              <svg className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Share Your Experience
             </button>
           </div>
         </ScrollReveal>
@@ -131,49 +142,49 @@ export default function TestimonialsSection() {
       {/* Add Compliment Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm transition-opacity">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl sm:p-8 animate-scale-in">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-elevated sm:p-8 animate-scale-in border-t-2 border-brand-gold/30">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-heading text-2xl font-bold text-brand-dark">Share your experience</h3>
-              <button 
+              <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-brand-gray hover:text-brand-dark"
+                className="text-brand-gray hover:text-brand-dark transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-brand-dark mb-1">Name *</label>
-                <input 
+                <input
                   required
-                  type="text" 
+                  type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full rounded-lg border border-brand-border px-4 py-2 focus:border-brand-maroon focus:outline-none focus:ring-1 focus:ring-brand-maroon"
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full rounded-xl border border-brand-border px-4 py-2.5 focus:border-brand-maroon focus:outline-none focus:ring-1 focus:ring-brand-maroon transition-colors"
                   placeholder="John Doe"
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-brand-dark mb-1">Title (Optional)</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={formData.title}
-                    onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    className="w-full rounded-lg border border-brand-border px-4 py-2 focus:border-brand-maroon focus:outline-none focus:ring-1 focus:ring-brand-maroon"
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="w-full rounded-xl border border-brand-border px-4 py-2.5 focus:border-brand-maroon focus:outline-none focus:ring-1 focus:ring-brand-maroon transition-colors"
                     placeholder="Chef / Home Cook"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-brand-dark mb-1">Rating</label>
-                  <select 
+                  <select
                     value={formData.rating}
-                    onChange={(e) => setFormData({...formData, rating: Number(e.target.value)})}
-                    className="w-full rounded-lg border border-brand-border px-4 py-2 focus:border-brand-maroon focus:outline-none focus:ring-1 focus:ring-brand-maroon"
+                    onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
+                    className="w-full rounded-xl border border-brand-border px-4 py-2.5 focus:border-brand-maroon focus:outline-none focus:ring-1 focus:ring-brand-maroon transition-colors"
                   >
                     <option value="5">5 Stars</option>
                     <option value="4">4 Stars</option>
@@ -186,19 +197,19 @@ export default function TestimonialsSection() {
 
               <div>
                 <label className="block text-sm font-medium text-brand-dark mb-1">Your Compliment *</label>
-                <textarea 
+                <textarea
                   required
                   rows={4}
                   value={formData.quote}
-                  onChange={(e) => setFormData({...formData, quote: e.target.value})}
-                  className="w-full rounded-lg border border-brand-border px-4 py-2 focus:border-brand-maroon focus:outline-none focus:ring-1 focus:ring-brand-maroon resize-none"
+                  onChange={(e) => setFormData({ ...formData, quote: e.target.value })}
+                  className="w-full rounded-xl border border-brand-border px-4 py-2.5 focus:border-brand-maroon focus:outline-none focus:ring-1 focus:ring-brand-maroon resize-none transition-colors"
                   placeholder="Tell us what you love about our spices..."
                 />
               </div>
 
-              <button 
+              <button
                 type="submit"
-                className="w-full mt-4 rounded-xl bg-brand-maroon py-3 font-semibold text-white transition-all hover:bg-brand-maroon-dark active:scale-[0.98]"
+                className="w-full mt-4 rounded-xl bg-brand-maroon py-3.5 font-semibold text-white transition-all hover:bg-brand-maroon-dark active:scale-[0.98] shadow-[0_4px_16px_rgba(139,26,26,0.25)]"
               >
                 Submit Compliment
               </button>

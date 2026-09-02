@@ -6,8 +6,18 @@ import { motion } from "framer-motion";
 
 export default function TrustFactors() {
   return (
-    <section className="bg-brand-cream/90 py-20 lg:py-28 overflow-hidden">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section className="bg-brand-cream/90 py-20 lg:py-28 overflow-hidden noise-overlay relative">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* Section Header */}
+        <ScrollReveal animation="fade-up">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="section-eyebrow">Why Choose Us</span>
+            <h2 className="mt-4 font-heading text-3xl font-bold text-brand-dark sm:text-4xl lg:text-5xl">
+              The Madhavji Promise
+            </h2>
+          </div>
+        </ScrollReveal>
+
         <div className="grid grid-cols-2 gap-4 sm:gap-8 lg:grid-cols-2">
           {TRUST_FACTORS.map((factor, index) => (
             <ScrollReveal 
@@ -17,27 +27,33 @@ export default function TrustFactors() {
               className="h-full"
             >
               <motion.div
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: 1.02, y: -4 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className="group relative rounded-2xl bg-white p-4 sm:p-6 lg:p-8 shadow-card transition-colors duration-300 hover:shadow-card-hover h-full"
+                className="gold-accent-left group relative rounded-2xl bg-white p-5 sm:p-7 lg:p-9 shadow-card border border-transparent transition-all duration-300 hover:shadow-gold-glow hover:border-brand-gold/20 h-full overflow-hidden"
               >
+                {/* Large background number */}
+                <span className="absolute -right-2 -top-4 text-[4rem] sm:text-[6rem] font-heading font-bold text-brand-cream-dark/60 leading-none select-none pointer-events-none">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+
                 {/* Icon */}
-                <div className="flex h-10 w-10 sm:h-12 sm:w-12 lg:h-14 lg:w-14 items-center justify-center rounded-xl bg-brand-cream text-brand-maroon transition-colors duration-300 group-hover:bg-brand-maroon group-hover:text-white">
+                <div className="relative flex h-10 w-10 sm:h-12 sm:w-12 lg:h-14 lg:w-14 items-center justify-center rounded-xl bg-brand-maroon/5 text-brand-maroon transition-all duration-300 group-hover:bg-brand-maroon group-hover:text-white group-hover:shadow-[0_4px_16px_rgba(139,26,26,0.25)]">
                   <TrustIcon name={factor.icon} />
                 </div>
 
                 {/* Stat Badge */}
                 {factor.stat && (
-                  <span className="mt-4 inline-block rounded-full bg-brand-gold/10 px-3 py-1 text-xs font-bold text-brand-gold">
+                  <span className="relative mt-4 inline-flex items-center gap-1.5 rounded-full bg-brand-gold/10 px-3 py-1 text-xs font-bold text-brand-gold shadow-[0_0_12px_rgba(212,160,23,0.1)]">
+                    <span className="h-1 w-1 rounded-full bg-brand-gold/60" />
                     {factor.stat}
                   </span>
                 )}
 
                 {/* Title & Description */}
-                <h3 className="mt-3 font-heading text-base sm:text-lg font-bold text-brand-dark">
+                <h3 className="relative mt-3 font-heading text-base sm:text-lg font-bold text-brand-dark">
                   {factor.title}
                 </h3>
-                <p className="mt-1 sm:mt-2 text-xs sm:text-sm leading-relaxed text-brand-gray line-clamp-4 sm:line-clamp-none">
+                <p className="relative mt-1 sm:mt-2 text-xs sm:text-sm leading-relaxed text-brand-gray line-clamp-4 sm:line-clamp-none">
                   {factor.description}
                 </p>
               </motion.div>
@@ -48,9 +64,15 @@ export default function TrustFactors() {
         {/* Central tagline */}
         <ScrollReveal animation="fade-up" delay="delay-300">
           <div className="mt-16 text-center">
+            {/* Decorative divider */}
+            <div className="flex items-center justify-center gap-3 mb-8">
+              <div className="h-px w-16 bg-gradient-to-r from-transparent to-brand-gold/40" />
+              <div className="h-2 w-2 rotate-45 border border-brand-gold/40 bg-brand-gold/10" />
+              <div className="h-px w-16 bg-gradient-to-l from-transparent to-brand-gold/40" />
+            </div>
             <h2 className="font-heading text-3xl font-bold text-brand-dark sm:text-4xl">
-              Why the customers trusts{" "}
-              <span className="text-brand-maroon">Madhavji Masala.</span>
+              Why customers trust{" "}
+              <span className="text-brand-gold">Madhavji Masala.</span>
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-brand-gray">
               For over four decades, we&apos;ve been the trusted spice partner for
