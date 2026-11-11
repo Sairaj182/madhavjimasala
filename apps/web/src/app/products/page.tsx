@@ -1,9 +1,6 @@
-"use client";
-
-import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { PRODUCTS, PRODUCT_CATEGORIES } from "@/lib/constants";
+import { getProducts, getCategories } from "@/lib/api";
 import NewsletterSection from "@/components/shared/NewsletterSection";
 import SectionDivider from "@/components/shared/SectionDivider";
 
@@ -14,13 +11,28 @@ const FLOATING_PARTICLES = [
   { size: 2, top: "75%", left: "25%", delay: 1.5, duration: 5 },
 ];
 
-export default function ProductsPage() {
-  const [activeCategory, setActiveCategory] = useState("all");
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>;
+}) {
+  const params = await searchParams;
+  const activeCategory = params.category || "all";
 
-  const filtered =
-    activeCategory === "all"
-      ? PRODUCTS
-      : PRODUCTS.filter((p) => p.categorySlug === activeCategory);
+  // Fetch from our backend (falls back to local constants if API is unavailable)
+  const [allProducts, categoriesData] = await Promise.all([
+    getProducts(),
+    getCategories(),
+  ]);
+
+  // Handle both mock data structure and Prisma data structure
+  const filtered = activeCategory === "all"
+    ? allProducts
+    : allProducts.filter((p: any) =>
+        p.categorySlug === activeCategory ||
+        p.category?.slug === activeCategory ||
+        p.categoryId === categoriesData.find((c: any) => c.slug === activeCategory)?.id
+      );
 
   return (
     <>
@@ -65,18 +77,28 @@ export default function ProductsPage() {
 
             {/* Category Filters */}
             <div className="mt-10 flex flex-wrap gap-3">
-              {PRODUCT_CATEGORIES.map((cat) => (
-                <button
+              <Link
+                href="/products"
+                className={`rounded-full px-5 py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 ${
+                  activeCategory === "all"
+                    ? "bg-gradient-to-r from-brand-maroon to-brand-maroon-dark text-white shadow-[0_4px_20px_rgba(139,26,26,0.4)] border border-transparent"
+                    : "border border-brand-gold/30 bg-white/5 backdrop-blur-sm text-white/80 hover:border-brand-gold hover:text-white hover:bg-white/10"
+                }`}
+              >
+                All Products
+              </Link>
+              {categoriesData.map((cat: any) => (
+                <Link
                   key={cat.slug}
-                  onClick={() => setActiveCategory(cat.slug)}
+                  href={`/products?category=${cat.slug}`}
                   className={`rounded-full px-5 py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 ${
                     activeCategory === cat.slug
                       ? "bg-gradient-to-r from-brand-maroon to-brand-maroon-dark text-white shadow-[0_4px_20px_rgba(139,26,26,0.4)] border border-transparent"
                       : "border border-brand-gold/30 bg-white/5 backdrop-blur-sm text-white/80 hover:border-brand-gold hover:text-white hover:bg-white/10"
                   }`}
                 >
-                  {cat.label}
-                </button>
+                  {cat.label || cat.name}
+                </Link>
               ))}
             </div>
           </div>
@@ -87,54 +109,63 @@ export default function ProductsPage() {
       <section className="py-16 lg:py-24 noise-overlay">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {filtered.map((product) => (
-              <Link
-                key={product.id}
-                href={`/products/${product.slug}`}
-                className="animated-border-card group flex flex-col h-full overflow-hidden border border-brand-border bg-transparent transition-all duration-500 hover:shadow-[0_0_30px_rgba(139,26,26,0.15)] hover:border-transparent hover:-translate-y-2 relative"
-              >
-                {/* Inner Content Wrapper */}
-                <div className="flex flex-col h-full relative z-10 rounded-[inherit] overflow-hidden">
-                  {/* Image */}
-                  <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-b from-brand-cream/30 to-white">
-                    <Image
-                      src={product.images[0]}
-                      alt={product.name}
-                      fill
-                      className="object-contain p-3 transition-transform duration-500 group-hover:scale-110"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    />
-                    {/* Category ribbon */}
-                    <div className="absolute left-0 top-2 sm:top-4 rounded-r-full bg-gradient-to-r from-brand-maroon to-brand-maroon-dark px-2 sm:px-3 py-0.5 sm:py-1 text-[8px] sm:text-[10px] uppercase tracking-wider text-white font-semibold shadow-sm">
-                      {product.category}
+            {filtered.map((product: any) => {
+              // Normalize API vs Mock Data
+              const price = product.priceInPaise ? product.priceInPaise / 100 : product.price;
+              const categoryLabel = product.category?.name || product.category;
+              const images = product.images || ["/images/products/garam-masala.png"];
+              const shortDesc = product.shortDescription || product.description?.substring(0, 80) + "...";
+
+              return (
+                <Link
+                  key={product.id}
+                  href={`/products/${product.slug}`}
+                  className="animated-border-card group flex flex-col h-full overflow-hidden border border-brand-border bg-transparent transition-all duration-500 hover:shadow-[0_0_30px_rgba(139,26,26,0.15)] hover:border-transparent hover:-translate-y-2 relative"
+                >
+                  <div className="flex flex-col h-full relative z-10 rounded-[inherit] overflow-hidden">
+                    {/* Image */}
+                    <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-b from-brand-cream/30 to-white">
+                      <Image
+                        src={images[0] || "/images/products/garam-masala.png"}
+                        alt={product.name}
+                        fill
+                        className="object-contain p-3 transition-transform duration-500 group-hover:scale-110"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      />
+                      {/* Category ribbon */}
+                      {categoryLabel && (
+                        <div className="absolute left-0 top-2 sm:top-4 rounded-r-full bg-gradient-to-r from-brand-maroon to-brand-maroon-dark px-2 sm:px-3 py-0.5 sm:py-1 text-[8px] sm:text-[10px] uppercase tracking-wider text-white font-semibold shadow-sm">
+                          {categoryLabel}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex flex-col flex-grow p-3 sm:p-5 bg-white">
+                      <h3 className="font-heading text-sm sm:text-lg font-bold text-brand-dark transition-colors group-hover:text-brand-maroon line-clamp-1 sm:line-clamp-none">
+                        {product.name}
+                      </h3>
+                      <p className="mt-1 sm:mt-2 text-[10px] sm:text-sm leading-relaxed text-brand-gray line-clamp-2 sm:line-clamp-3">
+                        {shortDesc}
+                      </p>
+
+                      {/* Price & Link */}
+                      <div className="mt-auto pt-2 sm:pt-4 flex items-center justify-between border-t border-brand-border/60">
+                        <span className="text-[10px] sm:text-sm font-bold text-brand-maroon truncate mr-1">
+                          {price ? `₹${price}` : "Contact for Price"}
+                        </span>
+                        <span className="flex items-center gap-0.5 sm:gap-1 text-[9px] sm:text-xs font-semibold text-brand-maroon transition-all group-hover:gap-1 sm:group-hover:gap-2">
+                          <span className="hidden min-[380px]:inline">Details</span>
+                          <svg className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+                          </svg>
+                        </span>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Content */}
-                  <div className="flex flex-col flex-grow p-3 sm:p-5 bg-white">
-                    <h3 className="font-heading text-sm sm:text-lg font-bold text-brand-dark transition-colors group-hover:text-brand-maroon line-clamp-1 sm:line-clamp-none">
-                      {product.name}
-                    </h3>
-                    <p className="mt-1 sm:mt-2 text-[10px] sm:text-sm leading-relaxed text-brand-gray line-clamp-2 sm:line-clamp-3">
-                      {product.shortDescription}
-                    </p>
-
-                    {/* Price & Link */}
-                    <div className="mt-auto pt-2 sm:pt-4 flex items-center justify-between border-t border-brand-border/60">
-                      <span className="text-[10px] sm:text-sm font-bold text-brand-maroon truncate mr-1">
-                        {product.price ? `₹${product.price}` : ""}
-                      </span>
-                      <span className="flex items-center gap-0.5 sm:gap-1 text-[9px] sm:text-xs font-semibold text-brand-maroon transition-all group-hover:gap-1 sm:group-hover:gap-2">
-                        <span className="hidden min-[380px]:inline">Details</span>
-                        <svg className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
 
           {/* Explore More CTA */}

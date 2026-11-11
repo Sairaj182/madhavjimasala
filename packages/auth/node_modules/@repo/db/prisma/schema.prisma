@@ -3,80 +3,290 @@ generator client {
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model Product {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-
-  name        String
-  slug        String   @unique
-
-  description String?
-
-  category    String?
-
-  images      Json?
-
-  price       Float?
-
-  stock       Int      @default(0)
-
-  isFeatured  Boolean  @default(false)
-  isActive    Boolean  @default(true)
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
 model User {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-
+  id            String    @id @default(cuid())
   name          String
-  email         String   @unique
-  password      String
+  email         String    @unique
+  emailVerified Boolean?
+  image         String?
+  password      String?
+  role          String    @default("user")
+  banned        Boolean?  @default(false)
+  banReason     String?
+  banExpires    DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  role          String   @default("admin")
+  sessions Session[]
+  accounts Account[]
 
-  isActive      Boolean  @default(true)
+  cart   Cart?
+  orders Order[]
+  pushSubscriptions PushSubscription[]
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  Attendance Attendance[]
+  Payroll    Payroll[]
+
+  @@map("user")
 }
+
+model StoreSettings {
+  id                         String   @id @default("store")
+  inventoryManagementEnabled Boolean  @default(false)
+  generalStoreEnabled       Boolean  @default(true)
+  generalStoreCatalogueOpen Boolean  @default(true)
+  generalStoreCartOpen      Boolean  @default(true)
+  generalStoreCheckoutOpen  Boolean  @default(true)
+  generalStoreOrdersOpen    Boolean  @default(true)
+  generalStorePickupOpen    Boolean  @default(true)
+  generalStoreNotificationsOpen Boolean @default(true)
+  generalStoreMaintenanceMessage String @default("General Store ordering is temporarily unavailable.")
+  updatedAt                  DateTime @updatedAt
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
+}
+
+// -----------------------------------------
+// Existing Models (Adapted for PostgreSQL)
+// -----------------------------------------
 
 model Attendance {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  id        String    @id @default(cuid())
+  userId    String
+  date      DateTime
+  status    String
+  checkIn   DateTime?
+  checkOut  DateTime?
+  notes     String?
+  createdAt DateTime  @default(now())
 
-  userId        String   @db.ObjectId
-
-  date          DateTime
-
-  status        String
-
-  checkIn       DateTime?
-  checkOut      DateTime?
-
-  notes         String?
-
-  createdAt     DateTime @default(now())
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Payroll {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  id          String   @id @default(cuid())
+  userId      String
+  month       Int
+  year        Int
+  baseSalary  Float
+  deductions  Float    @default(0)
+  finalSalary Float
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
 
-  userId        String   @db.ObjectId
+  user User @relation(fields: [userId], references: [id])
+}
 
-  month         Int
-  year          Int
+// -----------------------------------------
+// Store Models
+// -----------------------------------------
 
-  baseSalary    Float
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  deductions    Float    @default(0)
+  products Product[] @relation("ProductCategory")
+}
 
-  finalSalary   Float
+model Product {
+  id                String @id @default(cuid())
+  name              String
+  slug              String @unique
+  category          String
+  categorySlug      String
+  description       String
+  shortDescription  String
+  price             Int
+  // Canonical retail price in paise. `price` remains for legacy branded catalogue compatibility.
+  priceInPaise      Int @default(0)
+  priceUnit         String
+  images            Json
+  packagingSizes    Json
+  allowLooseQuantity Boolean @default(false)
+  loosePricingRules Json
+  preferredSelection Json?
+  tags              Json
+  usageTips         Json
+  perfectFor        Json
+  origin            String
+  originDescription String
+  badges            Json
 
-  status        String   @default("pending")
+  categoryId      String?
+  categoryDetails Category? @relation("ProductCategory", fields: [categoryId], references: [id])
 
-  createdAt     DateTime @default(now())
+  stockQuantity Int     @default(0)
+  weightValue   Float? // E.g., 100, 500
+  weightUnit    String? // E.g., "g", "kg"
+
+  isFeatured Boolean @default(false)
+  isActive   Boolean @default(true)
+  isGeneralStore Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cartItems CartItem[]
+}
+
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items CartItem[]
+}
+
+model CartItem {
+  id        String  @id @default(cuid())
+  cartId    String
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  packingLabel String @default("default")
+  packingWeight String?
+  selectionType String @default("PACKED")
+  selectionKey String @default("default")
+  requestedWeightGrams Int?
+  quotedUnitPriceInPaise Int @default(0)
+  quotedTotalInPaise Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId, selectionKey])
+}
+
+model PickupSlot {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date
+  startTime String // e.g., "11:00 AM"
+  endTime   String // e.g., "11:30 AM"
+  capacity  Int      @default(10)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+}
+
+model Order {
+  id           String @id @default(cuid())
+  serialNumber Int    @unique @default(autoincrement())
+  pickupNumber String @unique // e.g. "MMAB12CD" (uppercase alphanumeric pickup code)
+  idempotencyKey String? @unique
+  userId       String
+  user         User   @relation(fields: [userId], references: [id])
+
+  pickupSlotId String
+  pickupSlot   PickupSlot @relation(fields: [pickupSlotId], references: [id])
+
+  customerName  String
+  pickupPersonName String?
+  status        String @default("PENDING") // PENDING, PARTIALLY_ACCEPTED, CONFIRMED, READY_FOR_PICKUP, PICKED_UP, CANCELLED
+  paymentMethod String @default("CASH")
+  paymentStatus String @default("PENDING") // PENDING, PAID
+
+  totalInPaise Int
+
+  pickedUpAt   DateTime?
+  pickedUpById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items OrderItem[]
+}
+
+model OrderItem {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId         String?
+  productName       String
+  packingLabel      String @default("default")
+  packingWeight     String?
+  selectionType     String @default("PACKED")
+  requestedWeightGrams Int?
+  acceptedWeightGrams Int?
+  pricingUnit        String @default("PACK")
+  acceptedPackingLabel  String?
+  acceptedPackingWeight String?
+  fulfillmentNote       String?
+  unitPriceInPaise  Int
+  requestedQuantity Int @default(1)
+  quantity          Int
+  totalPriceInPaise Int
+  available         Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

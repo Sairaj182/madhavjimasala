@@ -42,6 +42,7 @@ export const SITE_INFO: SiteInfo = {
 export const NAV_LINKS: NavLink[] = [
   { label: "Home", href: "/" },
   { label: "Products", href: "/products" },
+  { label: "General Store", href: "/general-store" },
   { label: "About Us", href: "/about" },
   { label: "Certifications", href: "/certifications" },
   { label: "Contact", href: "/contact" },

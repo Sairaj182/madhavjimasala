@@ -16,6 +16,26 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## General Store production configuration
+
+General Store photos are resized to WebP and stored under `apps/web/public/uploads/general-store` by default. Set `PUBLIC_UPLOAD_DIR` to a persistent shared upload directory in production; immutable/serverless deployments should use object storage instead.
+
+Push notifications require VAPID credentials in the API environment:
+
+```text
+VAPID_PUBLIC_KEY=...
+VAPID_PRIVATE_KEY=...
+VAPID_SUBJECT=mailto:ops@example.com
+
+The General Store control centre has a second server-side PIN gate. Set a private value of at least six characters in the API environment before using `/admin/settings`:
+
+```env
+GENERAL_STORE_CONTROL_PIN=replace-with-a-private-control-pin
+```
+```
+
+Generate a key pair with `pnpm --filter api exec web-push generate-vapid-keys`, keep the private key server-side, then apply the push-subscription migration before enabling customer notifications.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
