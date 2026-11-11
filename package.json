@@ -5,7 +5,12 @@
   "packageManager": "pnpm@10.12.1",
   "scripts": {
     "dev": "turbo dev",
-    "build": "turbo build"
+    "build": "turbo build",
+    "db:studio": "npx dotenv-cli -e .env -- pnpm --filter @repo/db exec prisma studio",
+    "db:generate": "npx dotenv-cli -e .env -- pnpm --filter @repo/db exec prisma generate",
+    "db:migrate:dev": "npx dotenv-cli -e .env -- pnpm --filter @repo/db exec prisma migrate dev",
+    "db:seed": "npx dotenv-cli -e .env -- pnpm --filter @repo/db exec tsx prisma/seed/index.ts",
+    "db:seed:superadmin": "npx dotenv-cli -e .env -- pnpm --filter api exec tsx src/scripts/seed-superadmin.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

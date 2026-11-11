@@ -5,26 +5,46 @@
 ▲ Next.js 16.2.6 (Turbopack)
 
   Creating an optimized production build ...
-✓ Compiled successfully in 4.5s
+✓ Compiled successfully in 7.7s
   Running TypeScript ...
-  Finished TypeScript in 3.5s ...
-  Collecting page data using 12 workers ...
-  Generating static pages using 12 workers (0/9) ...
-  Generating static pages using 12 workers (2/9) 
-  Generating static pages using 12 workers (4/9) 
-  Generating static pages using 12 workers (6/9) 
-✓ Generating static pages using 12 workers (9/9) in 712ms
+  Finished TypeScript in 6.9s ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/21) ...
+  Generating static pages using 15 workers (5/21) 
+Falling back to local PRODUCTS due to API error: Error: Dynamic server usage: Route /general-store couldn't be rendered statically because it used revalidate: 0 fetch http://localhost:4000/api/products?kind=GENERAL_STORE /general-store. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at v (C:\code\madhavjimasala\apps\web\.next\server\chunks\ssr\[root-of-the-server]__0nrri0e._.js:8:82309)
+    at <unknown> (C:\code\madhavjimasala\apps\web\.next\server\chunks\ssr\[root-of-the-server]__0nrri0e._.js:17:13333)
+    at <unknown> (C:\code\madhavjimasala\apps\web\.next\server\chunks\ssr\[root-of-the-server]__0nrri0e._.js:1:30947)
+    at <unknown> (C:\code\madhavjimasala\apps\web\.next\server\chunks\ssr\[root-of-the-server]__0nrri0e._.js:1:30475) {
+  description: "Route /general-store couldn't be rendered statically because it used revalidate: 0 fetch http://localhost:4000/api/products?kind=GENERAL_STORE /general-store. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+  Generating static pages using 15 workers (10/21) 
+  Generating static pages using 15 workers (15/21) 
+✓ Generating static pages using 15 workers (21/21) in 768ms
   Finalizing page optimization ...
 
 Route (app)
 ┌ ○ /
 ├ ○ /_not-found
 ├ ○ /about
+├ ○ /admin
+├ ○ /admin/categories
+├ ○ /admin/general-store
+├ ○ /admin/orders
+├ ○ /admin/products
+├ ○ /admin/timeslots
 ├ ƒ /api/auth/[...all]
+├ ○ /cart
 ├ ○ /certifications
+├ ○ /checkout
+├ ○ /checkout/success
 ├ ○ /contact
+├ ƒ /general-store
 ├ ○ /legacy
-├ ○ /products
+├ ○ /login
+├ ○ /orders
+├ ƒ /products
 └ ƒ /products/[slug]
 
 
