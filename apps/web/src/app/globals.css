@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300;400;500;600;700&display=swap');
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/playfair-display";
+@import "@fontsource-variable/playfair-display/wght-italic.css";
 @import "tailwindcss";
 
 /* ── Tailwind v4 Theme ──────────────────────── */
@@ -20,8 +22,8 @@
   --color-brand-name: #14570D;
   --color-brand-soft-gold: #F5D876;
   /* Typography */
-  --font-heading: 'Playfair Display', Georgia, serif;
-  --font-body: 'Inter', system-ui, sans-serif;
+  --font-heading: "Playfair Display Variable", Georgia, 'Times New Roman', serif;
+  --font-body: "Inter Variable", Inter, system-ui, sans-serif;
 
   /* Shadows */
   --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.06);

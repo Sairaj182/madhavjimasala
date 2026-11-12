@@ -1,0 +1,6 @@
+region = "ap-south-1"
+environment = "prod"
+instance_type = "t4g.small"
+ami_id = "ami-REPLACE_WITH_ARM64_AMAZON_LINUX_2023"
+data_volume_gb = 50
+backup_bucket_arn = null

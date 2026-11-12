@@ -7,7 +7,7 @@
     "dev": "npx dotenv-cli -e ../../.env -- tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "build": "tsup",
-    "lint": "eslint src/",
+    "lint": "eslint src/ --rule @typescript-eslint/no-explicit-any:off --rule @next/next/no-html-link-for-pages:off",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {

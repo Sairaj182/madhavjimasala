@@ -2,10 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { prisma } from "@repo/db";
 import { requireAdmin } from "../middleware/auth";
 import { z } from "zod";
-import { mkdir } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import sharp from "sharp";
 import { Prisma } from "@prisma/client";
 import { getGeneralStoreControls } from "../lib/general-store-settings";
@@ -197,26 +194,70 @@ export async function productRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: "Upload a JPEG, PNG, or WebP image" });
       }
 
-      const rootPublicDirectory = path.resolve(process.cwd(), "apps/web/public");
-      const packagePublicDirectory = path.resolve(process.cwd(), "../web/public");
-      const uploadDirectory = process.env.PUBLIC_UPLOAD_DIR
-        ? path.resolve(process.env.PUBLIC_UPLOAD_DIR)
-        : path.join(existsSync(rootPublicDirectory) ? rootPublicDirectory : packagePublicDirectory, "uploads/general-store");
-      await mkdir(uploadDirectory, { recursive: true });
-      const fileName = `${id}-${randomUUID()}.webp`;
-      await sharp(await file.toBuffer())
-        .rotate()
-        .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
-        .webp({ quality: 85 })
-        .toFile(path.join(uploadDirectory, fileName));
-
-      const url = `/uploads/general-store/${fileName}`;
+      if (file.file.truncated) return reply.status(413).send({ error: "Image must be 10 MB or smaller" });
       const images = Array.isArray(product.images) ? product.images.filter((image): image is string => typeof image === "string") : [];
       if (images.length >= 8) return reply.status(400).send({ error: "A product can have at most 8 images" });
+      const optimized = await sharp(await file.toBuffer())
+        .rotate()
+        .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 85 }).toBuffer();
+      const cloud = process.env.CLOUDINARY_CLOUD_NAME;
+      const key = process.env.CLOUDINARY_API_KEY;
+      const secret = process.env.CLOUDINARY_API_SECRET;
+      let url: string;
+      if (cloud && key && secret) {
+        const timestamp = Math.floor(Date.now() / 1000).toString();
+        const folder = process.env.CLOUDINARY_FOLDER || "madhavji-masala";
+        const publicId = `${id}-${createHash("sha256").update(optimized).digest("hex").slice(0, 20)}`;
+        const signature = createHash("sha1").update(`folder=${folder}&public_id=${publicId}&timestamp=${timestamp}${secret}`).digest("hex");
+        const form = new FormData();
+        form.set("file", new Blob([optimized], { type: "image/webp" }), `${publicId}.webp`);
+        form.set("api_key", key); form.set("timestamp", timestamp); form.set("folder", folder); form.set("public_id", publicId); form.set("signature", signature);
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloud)}/image/upload`, { method: "POST", body: form });
+        const result = await response.json() as { secure_url?: string; public_id?: string; format?: string; width?: number; height?: number; bytes?: number; error?: { message?: string } };
+        if (!response.ok || !result.secure_url) throw new Error(result.error?.message || "Cloudinary upload failed");
+        url = result.secure_url;
+        if (result.public_id) {
+          await prisma.productImageAsset.create({
+            data: { productId: id, publicId: result.public_id, secureUrl: result.secure_url, format: result.format, width: result.width, height: result.height, bytes: result.bytes },
+          });
+        }
+      } else if (process.env.NODE_ENV !== "production") {
+        throw new Error("Configure Cloudinary for uploads; local upload fallback is disabled");
+      } else {
+        throw new Error("Cloudinary is not configured");
+      }
       const updated = await prisma.product.update({ where: { id }, data: { images: [...images, url] } });
       return reply.status(201).send({ url, images: updated.images });
     } catch (err: any) {
       return reply.status(400).send({ error: err.message || "Unable to upload image" });
+    }
+  });
+
+  app.delete("/:id/images", { preHandler: requireAdmin }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const { publicId } = z.object({ publicId: z.string().trim().min(1).max(255) }).parse(request.body);
+      const asset = await prisma.productImageAsset.findFirst({ where: { productId: id, publicId } });
+      if (!asset) return reply.status(404).send({ error: "Image asset not found" });
+      const cloud = process.env.CLOUDINARY_CLOUD_NAME;
+      const key = process.env.CLOUDINARY_API_KEY;
+      const secret = process.env.CLOUDINARY_API_SECRET;
+      if (!cloud || !key || !secret) return reply.status(503).send({ error: "Cloudinary is not configured" });
+      const timestamp = Math.floor(Date.now() / 1000).toString();
+      const signature = createHash("sha1").update(`public_id=${publicId}&timestamp=${timestamp}${secret}`).digest("hex");
+      const form = new URLSearchParams({ public_id: publicId, timestamp, api_key: key, signature });
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloud)}/image/destroy`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: form });
+      if (!response.ok) return reply.status(502).send({ error: "Cloudinary deletion failed" });
+      const product = await prisma.product.findUnique({ where: { id }, select: { images: true } });
+      const images = Array.isArray(product?.images) ? product.images.filter((image): image is string => typeof image === "string" && image !== asset.secureUrl) : [];
+      await prisma.$transaction([
+        prisma.productImageAsset.delete({ where: { id: asset.id } }),
+        prisma.product.update({ where: { id }, data: { images } }),
+      ]);
+      return reply.send({ images });
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message || "Unable to delete image" });
     }
   });
 
