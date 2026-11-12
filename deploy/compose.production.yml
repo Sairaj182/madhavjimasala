@@ -50,6 +50,8 @@ services:
   web:
     image: ${WEB_IMAGE:?set immutable WEB_IMAGE}
     restart: unless-stopped
+    environment:
+      API_SERVER_URL: ${API_SERVER_URL:-http://api:4000/api}
     expose: ["3000"]
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
