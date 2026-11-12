@@ -416,6 +416,22 @@ Start the whole stack:
 
 Verify the health URL, login, catalog, image upload, checkout, orders, admin pages, and enabled notifications.
 
+### Create the initial superadmin
+
+The API image includes the compiled `apps/api/dist/seed-superadmin.cjs` entry. After the migration has succeeded, connect with Session Manager and start a root shell. Enter the email and password interactively so the password is not written into shell history or the production environment file:
+
+    sudo bash
+    cd /opt/madhavji
+    read -r -p 'Superadmin email: ' SUPERADMIN_EMAIL
+    read -r -s -p 'Superadmin password: ' SUPERADMIN_PASSWORD
+    printf '\n'
+    export SUPERADMIN_EMAIL SUPERADMIN_PASSWORD
+    docker compose --env-file .env.production -f compose.production.yml run --rm -e SUPERADMIN_EMAIL -e SUPERADMIN_PASSWORD api node apps/api/dist/seed-superadmin.cjs
+    unset SUPERADMIN_EMAIL SUPERADMIN_PASSWORD
+    exit
+
+Use a strong password and save it in a password manager. The script creates a new user and assigns `SUPER_ADMIN`; if that email already exists, it promotes the existing user without changing its password. Verify the email carefully before running it. Run this only once for initial setup or intentionally to promote an existing account. The compiled entry must exist in the published image SHA; older API images do not contain it.
+
 ## 16. Automated deployment
 
 The deployment workflow is:
