@@ -8,4 +8,5 @@ export default defineConfig({
   outDir: 'dist',
   splitting: false,
   dts: false,
+  noExternal: ['@repo/auth', '@repo/db'],
 })
