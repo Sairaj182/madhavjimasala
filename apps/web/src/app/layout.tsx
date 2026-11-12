@@ -1,23 +1,10 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import LogoSplash from "@/components/layout/LogoSplash";
 import PwaRegistration from "@/components/layout/PwaRegistration";
 import { PAGE_META } from "@/lib/constants";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: PAGE_META.home.title,
@@ -40,10 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} ${playfair.variable}`}
-    >
+    <html lang="en">
       <body className="min-h-screen flex flex-col">
         <CartProvider>
           <LogoSplash />

@@ -160,7 +160,7 @@ export default function LogoSplash() {
       <p
         style={{
           marginTop: "1.5rem",
-          fontFamily: "'Playfair Display', Georgia, serif",
+          fontFamily: "'Playfair Display Variable', Georgia, serif",
           fontSize: "1.35rem",
           fontWeight: 500,
           letterSpacing: "0.15em",
@@ -192,7 +192,7 @@ export default function LogoSplash() {
       <p
         style={{
           marginTop: "0.75rem",
-          fontFamily: "'Inter', system-ui, sans-serif",
+          fontFamily: "'Inter Variable', Inter, system-ui, sans-serif",
           fontSize: "0.75rem",
           fontWeight: 400,
           letterSpacing: "0.3em",

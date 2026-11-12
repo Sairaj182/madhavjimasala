@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Toast from "@/components/shared/Toast";
 
-export default function CheckoutSuccessPage() {
+function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const pickupNumber = searchParams.get("pickupNumber") || undefined;
   const orderId = searchParams.get("orderId") || undefined;
@@ -86,5 +86,13 @@ export default function CheckoutSuccessPage() {
       </div>
       </div>
     </>
+  );
+}
+
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[80vh] flex items-center justify-center">Loading…</div>}>
+      <CheckoutSuccessContent />
+    </Suspense>
   );
 }

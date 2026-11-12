@@ -23,6 +23,10 @@ const schema = z.object({
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().url().optional(),
   GENERAL_STORE_CONTROL_PIN: z.string().trim().min(6).optional(),
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
+  CLOUDINARY_FOLDER: z.string().default("madhavji-masala"),
 });
 
 const parsed = schema.safeParse(process.env);
