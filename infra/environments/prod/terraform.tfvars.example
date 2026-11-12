@@ -1,6 +1,7 @@
 region = "ap-south-1"
 environment = "prod"
-instance_type = "t4g.small"
-ami_id = "ami-REPLACE_WITH_ARM64_AMAZON_LINUX_2023"
+instance_type = "t3.small"
+subnet_id = null # Set to a public default-VPC subnet in the chosen Availability Zone
+ami_id = "ami-REPLACE_WITH_X86_64_AMAZON_LINUX_2023"
 data_volume_gb = 50
 backup_bucket_arn = null

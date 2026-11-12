@@ -156,12 +156,17 @@ Build both production images from the repository root:
     docker build -f apps/api/Dockerfile -t madhavji-api:local .
     docker build -f apps/web/Dockerfile -t madhavji-web:local .
 
-For Graviton EC2:
+For the current x86_64 T3 deployment:
+
+    docker buildx build --platform linux/amd64 -f apps/api/Dockerfile -t madhavji-api:amd64 .
+    docker buildx build --platform linux/amd64 -f apps/web/Dockerfile -t madhavji-web:amd64 .
+
+If returning to Graviton later, change the image workflow and AMI back to ARM64 and build:
 
     docker buildx build --platform linux/arm64 -f apps/api/Dockerfile -t madhavji-api:arm64 .
     docker buildx build --platform linux/arm64 -f apps/web/Dockerfile -t madhavji-web:arm64 .
 
-Use x86_64 images and an x86_64 AMI if Prisma, Sharp, or another native dependency is not compatible with ARM64.
+The GHCR image workflow currently publishes linux/amd64 only. Existing ARM64-only image tags cannot run on a T3 host; publish a new commit SHA before deploying.
 
 ## 7. Local Compose validation
 
@@ -228,12 +233,26 @@ Set:
 
     region         = "ap-south-1"
     environment    = "prod"
-    instance_type  = "t4g.small"
-    ami_id         = "ami-REPLACE_WITH_COMPATIBLE_AMI"
+    instance_type  = "t3.small"
+    subnet_id      = null
+    ami_id         = "ami-REPLACE_WITH_X86_64_AL2023_AMI"
     data_volume_gb = 50
     backup_bucket_arn = null
 
 Set backup_bucket_arn only if the EC2 role should upload backups to an AWS S3 bucket.
+
+The default subnet selection uses the first subnet returned for the default VPC. If EC2 reports `Server.InsufficientInstanceCapacity`, identify the current subnet's Availability Zone and list other public subnets in that VPC:
+
+    aws ec2 describe-subnets --region ap-south-1 --subnet-ids CURRENT_SUBNET_ID --query "Subnets[].{Id:SubnetId,AZ:AvailabilityZone,Vpc:VpcId}" --output table
+    aws ec2 describe-subnets --region ap-south-1 --filters "Name=vpc-id,Values=YOUR_VPC_ID" --query "Subnets[].{Id:SubnetId,AZ:AvailabilityZone,PublicIp:MapPublicIpOnLaunch}" --output table
+
+Set `subnet_id` in the untracked `terraform.tfvars` to a public subnet in a different Availability Zone. Re-run `tofu plan -out=prod.plan`, inspect the plan, then `tofu apply prod.plan`. A listed instance type does not guarantee spare capacity in an AZ. If an instance or data volume already exists, review replacement actions and data persistence before changing the subnet.
+
+For T3, retrieve the current x86_64 AL2023 AMI in the deployment region and put the returned `ami-...` ID in `terraform.tfvars`:
+
+    aws ssm get-parameter --region ap-south-1 --name /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64 --query Parameter.Value --output text
+
+Keep `instance_type`, AMI architecture, and published image platform aligned. `t3.small` has 2 GiB RAM; monitor memory for the five-container stack and consider `t3.medium` (4 GiB) if needed.
 
 ## 10. First infrastructure plan and apply
 
@@ -371,7 +390,7 @@ The staging helper sends small SSM commands in sequence and stops if any command
     Caddyfile
     scripts/
 
-Create `.env.production` separately on the server with real values; the staging command deliberately never transfers credentials. Check `docker compose version` on the host. On this Amazon Linux setup, Docker may be installed without Compose. The current host needs the ARM64 Compose plugin installed manually using Docker's documented system-wide plugin location. The repository bootstrap now pins and checks the plugin download for future hosts, but editing user-data does not rerun it on the current instance. Do not start services until `sudo docker compose version` succeeds.
+Create `.env.production` separately on the server with real values; the staging command deliberately never transfers credentials. Check `docker compose version` on the host. On this Amazon Linux setup, Docker may be installed without Compose. The bootstrap selects and verifies the Compose plugin for the host's CPU architecture. Editing user-data does not rerun it on an existing instance. Do not start services until `sudo docker compose version` succeeds.
 
 Start PostgreSQL and Redis:
 
