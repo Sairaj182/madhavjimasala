@@ -1,6 +1,8 @@
 import { PRODUCTS, PRODUCT_CATEGORIES } from "./constants";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const browserApiUrl = process.env.NEXT_PUBLIC_API_URL || "/api";
+const serverApiUrl = process.env.API_SERVER_URL || "http://api:4000/api";
+const API_URL = typeof window === "undefined" ? serverApiUrl : browserApiUrl;
 
 export async function getProducts(kind?: "GENERAL_STORE") {
   try {
