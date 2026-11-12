@@ -10,6 +10,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/contexts/CartContext";
 import { authClient } from "@/lib/auth-client";
 
+const ADMIN_ROLES = new Set(["ADMIN", "admin", "SUPER_ADMIN", "super_admin", "superadmin"]);
+
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -17,6 +19,7 @@ export default function Header() {
   const { cartItems } = useCart();
   const { data: session } = authClient.useSession();
   const cartItemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const canAccessAdminPanel = ADMIN_ROLES.has(session?.user?.role ?? "");
 
 
   useEffect(() => {
@@ -96,6 +99,19 @@ export default function Header() {
                 pathname === "/orders" ? "w-full" : "w-0 group-hover:w-full"
               }`} />
             </Link>
+            {canAccessAdminPanel && (
+              <Link
+                href="/admin"
+                className={`group relative whitespace-nowrap py-2 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors 2xl:text-xs 2xl:tracking-widest ${
+                  pathname?.startsWith("/admin") ? "text-brand-maroon" : "text-brand-dark hover:text-brand-maroon"
+                }`}
+              >
+                Admin Panel
+                <span className={`absolute bottom-0 left-0 h-[2px] bg-brand-maroon transition-all duration-300 ${
+                  pathname?.startsWith("/admin") ? "w-full" : "w-0 group-hover:w-full"
+                }`} />
+              </Link>
+            )}
             {session?.user ? (
               <button
                 onClick={() => void authClient.signOut()}
@@ -213,6 +229,19 @@ export default function Header() {
                   Orders
                 </Link>
               </motion.div>
+              {canAccessAdminPanel && (
+                <motion.div
+                  variants={{
+                    closed: { opacity: 0, x: -15 },
+                    open: { opacity: 1, x: 0 }
+                  }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                >
+                  <Link href="/admin" className="block text-sm font-bold uppercase tracking-widest text-brand-dark/70 hover:text-brand-maroon">
+                    Admin Panel
+                  </Link>
+                </motion.div>
+              )}
               <motion.div
                 variants={{
                   closed: { opacity: 0, x: -15 },
