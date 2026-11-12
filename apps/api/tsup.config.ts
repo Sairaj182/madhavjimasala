@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
     'seed-superadmin': 'src/scripts/seed-superadmin.ts',
+    'seed-products': '../../packages/db/prisma/seed/index.ts',
   },
   format: ['cjs'],
   target: 'node22',

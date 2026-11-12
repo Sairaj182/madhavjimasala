@@ -432,6 +432,19 @@ The API image includes the compiled `apps/api/dist/seed-superadmin.cjs` entry. A
 
 Use a strong password and save it in a password manager. The script creates a new user and assigns `SUPER_ADMIN`; if that email already exists, it promotes the existing user without changing its password. Verify the email carefully before running it. Run this only once for initial setup or intentionally to promote an existing account. The compiled entry must exist in the published image SHA; older API images do not contain it.
 
+### Seed the branded catalogue
+
+The API image also includes `apps/api/dist/seed-products.cjs`. This seeds the original branded catalogue and the `spices` category. It is idempotent by product slug: existing products are not duplicated and their current fields are not overwritten. It does not seed General Store products.
+
+After the desired API image has been deployed, run:
+
+    sudo bash
+    cd /opt/madhavji
+    docker compose --env-file .env.production -f compose.production.yml run --rm api node apps/api/dist/seed-products.cjs
+    exit
+
+Run this only when you intentionally want the default branded catalogue in that database. Create General Store products through the admin panel, where their store-specific settings can be configured safely.
+
 ## 16. Automated deployment
 
 The deployment workflow is:
