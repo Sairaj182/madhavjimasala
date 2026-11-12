@@ -91,7 +91,7 @@ resource "aws_iam_instance_profile" "ec2" {
 resource "aws_instance" "app" {
   ami                    = var.ami_id
   instance_type          = var.instance_type
-  subnet_id              = data.aws_subnets.default.ids[0]
+  subnet_id              = var.subnet_id != null ? var.subnet_id : data.aws_subnets.default.ids[0]
   vpc_security_group_ids = [aws_security_group.app.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2.name
   user_data              = file("${path.module}/../../../scripts/ec2-bootstrap.sh")

@@ -10,12 +10,18 @@ variable "environment" {
 
 variable "instance_type" {
   type    = string
-  default = "t4g.small"
+  default = "t3.small"
+}
+
+variable "subnet_id" {
+  type        = string
+  default     = null
+  description = "Optional public subnet in the default VPC; pin this to select an Availability Zone with EC2 capacity"
 }
 
 variable "ami_id" {
   type        = string
-  description = "ARM64 Amazon Linux 2023 AMI in the selected region"
+  description = "Amazon Linux 2023 AMI matching the instance architecture in the selected region"
 }
 
 variable "data_volume_gb" {
