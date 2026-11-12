@@ -10,8 +10,6 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_OWNER: ${{ github.repository_owner }}
-  IMAGE_REPOSITORY: ${{ github.event.repository.name }}
 
 jobs:
   publish:
@@ -24,6 +22,10 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Normalize image path
+        id: image-path
+        shell: bash
+        run: echo "path=$(echo \"${GITHUB_REPOSITORY}\" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
       - name: Build and push API
         uses: docker/build-push-action@v6
         with:
@@ -31,7 +33,7 @@ jobs:
           file: apps/api/Dockerfile
           platforms: linux/arm64
           push: true
-          tags: ghcr.io/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_REPOSITORY }}-api:${{ github.sha }}
+          tags: ghcr.io/${{ steps.image-path.outputs.path }}-api:${{ github.sha }}
       - name: Build and push web
         uses: docker/build-push-action@v6
         with:
@@ -40,4 +42,4 @@ jobs:
           platforms: linux/arm64
           push: true
           build-args: NEXT_PUBLIC_API_URL=/api
-          tags: ghcr.io/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_REPOSITORY }}-web:${{ github.sha }}
+          tags: ghcr.io/${{ steps.image-path.outputs.path }}-web:${{ github.sha }}
