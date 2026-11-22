@@ -51,12 +51,41 @@ export async function requireAdmin(
   }
 }
 
+export async function requireOwner(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  await requireAuth(request, reply);
+  if (reply.sent) return;
+
+  const user = (request as any).user;
+  if (!isOwnerRole(user?.role)) {
+    return reply.status(403).send({ error: "Forbidden: Store owner access required" });
+  }
+}
+
 export function isAdminRole(role?: string) {
-  return ["ADMIN", "admin", "SUPER_ADMIN", "super_admin", "superadmin"].includes(role ?? "");
+  return isOwnerRole(role) || isStaffRole(role);
 }
 
 export function isSuperAdminRole(role?: string) {
   return ["SUPER_ADMIN", "super_admin", "superadmin"].includes(role ?? "");
+}
+
+export function isOwnerRole(role?: string) {
+  return [
+    "ADMIN",
+    "admin",
+    "STORE_OWNER",
+    "store_owner",
+    "SUPER_ADMIN",
+    "super_admin",
+    "superadmin",
+  ].includes(role ?? "");
+}
+
+export function isStaffRole(role?: string) {
+  return ["STAFF", "staff"].includes(role ?? "");
 }
 
 export async function requireSuperAdmin(

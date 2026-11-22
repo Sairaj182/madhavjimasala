@@ -1,7 +1,9 @@
 import { PRODUCTS, PRODUCT_CATEGORIES } from "./constants";
 
 const browserApiUrl = process.env.NEXT_PUBLIC_API_URL || "/api";
-const serverApiUrl = process.env.API_SERVER_URL || "http://api:4000/api";
+// Docker Compose supplies API_SERVER_URL=http://api:4000/api in production.
+// When Next.js runs directly on the developer machine, use the host API instead.
+const serverApiUrl = process.env.API_SERVER_URL || "http://localhost:4000/api";
 const API_URL = typeof window === "undefined" ? serverApiUrl : browserApiUrl;
 
 export async function getProducts(kind?: "GENERAL_STORE") {

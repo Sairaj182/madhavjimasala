@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { prisma } from "@repo/db";
-import { requireSuperAdmin } from "../middleware/auth";
+import { requireOwner } from "../middleware/auth";
 import { z } from "zod";
 import { timingSafeEqual } from "node:crypto";
 import { env } from "../env";
@@ -42,12 +42,12 @@ async function getStoreSettings() {
 }
 
 export async function settingsRoutes(app: FastifyInstance) {
-  app.get("/store", { preHandler: [requireSuperAdmin, requireControlCenterPin] }, async (_request, reply) => {
+  app.get("/store", { preHandler: [requireOwner, requireControlCenterPin] }, async (_request, reply) => {
     const settings = await getStoreSettings();
     return reply.send(settings);
   });
 
-  app.patch("/store", { preHandler: [requireSuperAdmin, requireControlCenterPin] }, async (request, reply) => {
+  app.patch("/store", { preHandler: [requireOwner, requireControlCenterPin] }, async (request, reply) => {
     try {
       const data = updateStoreSettingsSchema.parse(request.body);
       const current = await getStoreSettings();

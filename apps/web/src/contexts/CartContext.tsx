@@ -77,7 +77,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addToCart = async (productId: string, quantity: number, packingLabel = "default", packingWeight?: string, selectionType: "PACKED" | "LOOSE" = "PACKED", requestedWeightGrams?: number) => {
     if (!session?.user) {
-      router.push("/login");
+      const callbackUrl = `${window.location.pathname}${window.location.search}`;
+      router.push(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
       return;
     }
 

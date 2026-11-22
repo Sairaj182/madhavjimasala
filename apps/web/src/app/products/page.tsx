@@ -108,7 +108,7 @@ export default async function ProductsPage({
       {/* Product Grid */}
       <section className="py-16 lg:py-24 noise-overlay">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
             {filtered.map((product: any) => {
               // Normalize API vs Mock Data
               const price = product.priceInPaise ? product.priceInPaise / 100 : product.price;

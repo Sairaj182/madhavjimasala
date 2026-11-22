@@ -93,13 +93,13 @@ export default function CertificationsPage() {
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center">
-            <span className="section-eyebrow !text-brand-gold/70">24-Layer Protocol</span>
+            <span className="section-eyebrow !text-brand-gold/70">Quality Process</span>
             <h2 className="mt-4 font-heading text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
               Our Quality <span className="text-brand-gold">Testing Process</span>
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-white/60">
-              Every batch of Madhavji Masala undergoes a comprehensive 24-layer
-              quality testing protocol before reaching your kitchen.
+              Quality is managed from incoming raw spices through processing,
+              packing, and final dispatch.
             </p>
           </div>
 
@@ -111,22 +111,22 @@ export default function CertificationsPage() {
               {
                 step: "01",
                 title: "Raw Material Inspection",
-                desc: "Visual, olfactory, and moisture-level checks on incoming raw spices.",
+                desc: "Incoming raw spices are reviewed before they enter production.",
               },
               {
                 step: "02",
-                title: "Lab Analysis",
-                desc: "HPLC testing for active compounds, heavy metals, and pesticide residues.",
+                title: "Controlled Processing",
+                desc: "Grinding and blending are managed for consistency and cleanliness.",
               },
               {
                 step: "03",
-                title: "Microbial Testing",
-                desc: "Complete microbiology panel — TPC, yeast, mold, E.coli, Salmonella.",
+                title: "Packing Checks",
+                desc: "Products and packs are checked before sealing and labelling.",
               },
               {
                 step: "04",
-                title: "Final Certification",
-                desc: "Third-party lab verification and batch-level certificate of analysis.",
+                title: "Final Review",
+                desc: "Finished packs receive a final review before dispatch.",
               },
             ].map((item) => (
               <div
@@ -153,7 +153,7 @@ export default function CertificationsPage() {
               href="/contact"
               className="group inline-flex items-center gap-2 rounded-full bg-brand-maroon px-8 py-4 text-sm font-semibold text-white transition-all duration-300 hover:bg-brand-maroon-dark hover:shadow-[0_8px_30px_rgba(139,26,26,0.35)] hover:-translate-y-0.5"
             >
-              Request Certificate of Analysis
+              Ask about quality documentation
               <svg className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>

@@ -15,12 +15,20 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const getRedirectPath = () => {
+    const requestedPath = new URLSearchParams(window.location.search).get("callbackUrl");
+    return requestedPath && requestedPath.startsWith("/") && !requestedPath.startsWith("//")
+      ? requestedPath
+      : "/products";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
+      const redirectPath = getRedirectPath();
       if (isRegister) {
         await authClient.signUp.email({
           email,
@@ -28,7 +36,7 @@ export default function LoginPage() {
           name,
         }, {
           onSuccess: () => {
-            router.push("/products");
+            router.push(redirectPath);
             router.refresh();
           },
           onError: (ctx) => {
@@ -41,7 +49,7 @@ export default function LoginPage() {
           password,
         }, {
           onSuccess: () => {
-            router.push("/products");
+            router.push(redirectPath);
             router.refresh();
           },
           onError: (ctx) => {

@@ -320,24 +320,19 @@ export default function ProductDetailClient({
               The <span className="text-brand-maroon">Madhavji Standard</span>
             </h2>
             <p className="mt-6 text-base leading-relaxed text-brand-gray border-l-2 border-brand-gold/30 pl-4">
-              Our spices are more than ingredients — they are a legacy. For
-              three generations, we&apos;ve partnered with small-scale farmers
-              who practice traditional agricultural methods. No chemical
-              enhancers, no industrial shortcuts — just the pure, undiluted
-              soul of Indian spices.
+              Every Madhavji Masala product carries the family&apos;s commitment to
+              honest work, consistent quality, and authentic flavour. Our
+              detailed family history is documented separately so product
+              information remains clear and verifiable.
             </p>
 
             <div className="mt-8 flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm border border-brand-gold/20 max-w-md">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-maroon to-brand-maroon-dark text-white text-sm font-bold shadow-inner ring-2 ring-brand-gold/30 ring-offset-2">
-                PM
+                MM
               </div>
               <div>
-                <p className="text-sm font-bold text-brand-dark">
-                  Rasiklal Raithatha
-                </p>
-                <p className="text-xs text-brand-gold font-medium mt-0.5 tracking-wide">
-                  Master Spice Curator
-                </p>
+                <p className="text-sm font-bold text-brand-dark">Madhavji Masala</p>
+                <p className="text-xs text-brand-gold font-medium mt-0.5 tracking-wide">Family enterprise since 1930</p>
               </div>
             </div>
           </div>

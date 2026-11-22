@@ -1,22 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ABOUT_CONTENT, PROCESS_STEPS, PAGE_META, SITE_INFO } from "@/lib/constants";
+import { ABOUT_CONTENT, PROCESS_STEPS, PAGE_META } from "@/lib/constants";
 import SectionDivider from "@/components/shared/SectionDivider";
 
 export const metadata: Metadata = {
   title: PAGE_META.about.title,
   description: PAGE_META.about.description,
 };
-
-const FLOATING_PARTICLES = [
-  { size: 3, top: "10%", right: "15%", delay: 0, duration: 5 },
-  { size: 5, top: "50%", right: "25%", delay: 1.5, duration: 6 },
-  { size: 2, top: "30%", right: "10%", delay: 0.8, duration: 4.5 },
-  { size: 4, top: "80%", right: "35%", delay: 2, duration: 5.5 },
-  { size: 3, top: "20%", left: "15%", delay: 0.5, duration: 4.8 },
-  { size: 2, top: "70%", left: "20%", delay: 1.2, duration: 5 },
-];
 
 export default function AboutPage() {
   return (
@@ -162,7 +153,6 @@ export default function AboutPage() {
                 className="animated-border-card group flex flex-col h-full bg-transparent overflow-hidden rounded-2xl transition-all duration-500 hover:-translate-y-2 hover:shadow-card-hover"
               >
                 <div className="flex flex-col h-full relative z-10 rounded-[inherit] overflow-hidden bg-white">
-                  {/* Image */}
                   <div className="relative aspect-[4/3] overflow-hidden">
                     <Image
                       src={step.image}
@@ -172,14 +162,11 @@ export default function AboutPage() {
                       sizes="(max-width: 768px) 100vw, 33vw"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
-                    
-                    {/* Floating Step Badge */}
                     <div className="absolute bottom-4 left-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur-md text-sm font-bold text-white ring-2 ring-brand-gold/40 shadow-lg">
                       {String(i + 1).padStart(2, "0")}
                     </div>
                   </div>
 
-                  {/* Content */}
                   <div className="flex-grow p-6">
                     <h3 className="font-heading text-xl font-bold text-brand-dark transition-colors group-hover:text-brand-maroon">
                       {step.title}
@@ -195,72 +182,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Legacy Timeline */}
-      <section className="relative bg-brand-dark py-20 lg:py-28 overflow-hidden">
-        {/* Subtle warm gradient wash */}
-        <div
-          className="absolute inset-0 opacity-15 z-0"
-          style={{
-            background: "radial-gradient(circle at 50% 50%, rgba(139,26,26,0.3) 0%, transparent 60%)",
-          }}
-        />
-
-        {/* Floating particles */}
-        {FLOATING_PARTICLES.map((p, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full pointer-events-none z-0"
-            style={{
-              width: p.size,
-              height: p.size,
-              top: p.top,
-              right: p.right,
-              left: p.left,
-              background: `radial-gradient(circle, rgba(212,160,23,0.6), rgba(212,160,23,0.1))`,
-              animation: `gentle-float ${p.duration}s ease-in-out ${p.delay}s infinite`,
-            }}
-          />
-        ))}
-
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center">
-            <span className="section-eyebrow !text-brand-gold/70">A Century of Flavor</span>
-            <h2 className="mt-4 font-heading text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
-              Our Journey <span className="text-brand-gold">Through Time</span>
-            </h2>
-          </div>
-
-          <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 relative">
-            {/* Desktop Connector Line */}
-            <div className="hidden lg:block absolute top-12 left-[12%] right-[12%] h-px border-t border-dashed border-brand-gold/30 z-0" />
-
-            {[
-              { year: SITE_INFO.foundedYear.toString(), event: "Founded", desc: "Started as a small grinding mill in Unjha, Gujarat." },
-              { year: "1995", event: "First Export", desc: "Expanded to international markets with first bulk shipment." },
-              { year: "2010", event: "Modern Facility", desc: "Opened state-of-the-art processing facility with cryogenic grinding." },
-              { year: "2026", event: "Digital Presence", desc: "Launched digital platform to serve customers." },
-            ].map((milestone) => (
-              <div
-                key={milestone.year}
-                className="relative group rounded-2xl border border-brand-gold/20 bg-white/5 backdrop-blur-sm p-8 transition-all duration-300 hover:border-brand-gold hover:bg-white/10 hover:-translate-y-2 hover:shadow-[0_8px_30px_rgba(212,160,23,0.15)] z-10"
-              >
-                {/* Year Badge */}
-                <div className="inline-block rounded-full bg-brand-gold/10 px-4 py-1.5 mb-4 border border-brand-gold/30">
-                  <p className="text-2xl font-bold font-heading text-brand-gold drop-shadow-sm">
-                    {milestone.year}
-                  </p>
-                </div>
-                <h3 className="text-xl font-semibold text-white">
-                  {milestone.event}
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-white/70">
-                  {milestone.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
     </>
   );
 }

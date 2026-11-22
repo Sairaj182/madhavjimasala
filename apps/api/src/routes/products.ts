@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "@repo/db";
-import { requireAdmin } from "../middleware/auth";
+import { requireAdmin, requireOwner } from "../middleware/auth";
 import { z } from "zod";
 import { createHash } from "node:crypto";
 import sharp from "sharp";
@@ -87,6 +87,16 @@ const createProductSchema = z.object({
 
 const updateProductSchema = createProductSchema.partial();
 
+const availabilityUpdateSchema = z.object({
+  isActive: z.boolean().optional(),
+  packagingSizes: z.array(z.object({
+    label: z.string().trim().min(1).max(80),
+    availability: z.enum(["AVAILABLE", "UNAVAILABLE", "ON_REQUEST"]),
+  })).max(20).optional(),
+}).refine((data) => data.isActive !== undefined || data.packagingSizes !== undefined, {
+  message: "Provide product or packing availability",
+});
+
 function validatePreferredSelection(selection: z.infer<typeof preferredSelectionSchema> | null | undefined, allowLoose: boolean | undefined, packagingSizes: unknown, loosePricingRules: unknown) {
   if (!selection) return;
   if (selection.selectionType === "PACKED") {
@@ -145,7 +155,7 @@ export async function productRoutes(app: FastifyInstance) {
   });
 
   // Admin Routes
-  app.post("/", { preHandler: requireAdmin }, async (request, reply) => {
+  app.post("/", { preHandler: requireOwner }, async (request, reply) => {
     try {
       const data = createProductSchema.parse(request.body);
       const inventoryEnabled = await inventoryManagementEnabled();
@@ -182,7 +192,7 @@ export async function productRoutes(app: FastifyInstance) {
     }
   });
 
-  app.post("/:id/images", { preHandler: requireAdmin }, async (request, reply) => {
+  app.post("/:id/images", { preHandler: requireOwner }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const product = await prisma.product.findUnique({ where: { id }, select: { isGeneralStore: true, images: true } });
@@ -234,7 +244,7 @@ export async function productRoutes(app: FastifyInstance) {
     }
   });
 
-  app.delete("/:id/images", { preHandler: requireAdmin }, async (request, reply) => {
+  app.delete("/:id/images", { preHandler: requireOwner }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const { publicId } = z.object({ publicId: z.string().trim().min(1).max(255) }).parse(request.body);
@@ -261,7 +271,41 @@ export async function productRoutes(app: FastifyInstance) {
     }
   });
 
-  app.put("/:id", { preHandler: requireAdmin }, async (request, reply) => {
+  app.patch("/:id/availability", { preHandler: requireAdmin }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const data = availabilityUpdateSchema.parse(request.body);
+      const existing = await prisma.product.findUnique({ where: { id }, select: { isActive: true, packagingSizes: true } });
+      if (!existing) return reply.status(404).send({ error: "Product not found" });
+
+      let packagingSizes = existing.packagingSizes;
+      if (data.packagingSizes) {
+        const requested = new Map(data.packagingSizes.map((packing) => [packing.label, packing.availability]));
+        const current = Array.isArray(existing.packagingSizes) ? existing.packagingSizes : [];
+        const unknown = [...requested.keys()].filter((label) => !current.some((packing) => typeof packing === "object" && packing !== null && (packing as { label?: unknown }).label === label));
+        if (unknown.length > 0) return reply.status(400).send({ error: `Unknown packing option: ${unknown[0]}` });
+        packagingSizes = current.map((packing) => {
+          if (typeof packing !== "object" || packing === null) return packing;
+          const label = (packing as { label?: unknown }).label;
+          const availability = typeof label === "string" ? requested.get(label) : undefined;
+          return availability ? { ...packing, availability } : packing;
+        });
+      }
+
+      const product = await prisma.product.update({
+        where: { id },
+        data: {
+          ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+          ...(data.packagingSizes !== undefined ? { packagingSizes: packagingSizes as Prisma.InputJsonValue } : {}),
+        },
+      });
+      return reply.send(product);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  app.put("/:id", { preHandler: requireOwner }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const data = updateProductSchema.parse(request.body);
@@ -286,7 +330,7 @@ export async function productRoutes(app: FastifyInstance) {
     }
   });
 
-  app.delete("/:id", { preHandler: requireAdmin }, async (request, reply) => {
+  app.delete("/:id", { preHandler: requireOwner }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       // Products are archived so historical cart/order lines keep their identity.

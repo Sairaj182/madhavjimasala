@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Toast from "@/components/shared/Toast";
 import { formatRate, formatWeightGrams, formatWeightText } from "@/lib/general-store-display";
+import { authClient } from "@/lib/auth-client";
+import { isOwnerRole, isStaffRole } from "@/lib/admin-roles";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 const PAST_ORDER_STATUSES = new Set(["PICKED_UP", "CANCELLED"]);
@@ -151,6 +153,9 @@ function OrderSummary({ order }: { order: Order }) {
 }
 
 export default function AdminOrders() {
+  const { data: session } = authClient.useSession();
+  const owner = isOwnerRole(session?.user.role);
+  const staff = isStaffRole(session?.user.role);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [pickupCode, setPickupCode] = useState("");
@@ -397,7 +402,7 @@ export default function AdminOrders() {
         </button>
       </div>
 
-      <section className="rounded-2xl border border-brand-gold/30 bg-brand-cream/30 p-3 shadow-sm sm:p-5">
+      {owner && <section className="rounded-2xl border border-brand-gold/30 bg-brand-cream/30 p-3 shadow-sm sm:p-5">
         <button type="button" onClick={() => setShowPickupVerification((current) => !current)} className="flex w-full items-center justify-between gap-3 text-left">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-brand-maroon">Verify pickup</p>
@@ -406,6 +411,22 @@ export default function AdminOrders() {
           <span className="rounded-full border border-brand-maroon/20 bg-white px-3 py-1 text-xs font-bold text-brand-maroon">{showPickupVerification ? "Hide" : "Open"}</span>
         </button>
         {showPickupVerification && <div className="mt-3 sm:mt-4">
+        <figure className="mb-4 max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-gray-950 shadow-sm sm:mb-5">
+          <video
+            className="aspect-video w-full object-contain"
+            controls
+            playsInline
+            preload="metadata"
+            poster="/videos/pickup-verification-guide-poster.jpg"
+            aria-label="Guide showing how to verify a customer pickup code and complete pickup"
+          >
+            <source src="/videos/pickup-verification-guide.mp4" type="video/mp4" />
+            Your browser does not support video playback.
+          </video>
+          <figcaption className="px-3 py-2.5 text-xs font-semibold text-white/80 sm:px-4">
+            Quick guide · Customer pickup code and verification
+          </figcaption>
+        </figure>
         <div className="mb-3 sm:mb-4">
           <p className="mt-1 text-sm text-gray-600">
             The order board below never displays pickup codes. Use this portal only when a customer presents their code.
@@ -438,7 +459,7 @@ export default function AdminOrders() {
         </div>
         {message && <p className="mt-3 text-sm font-semibold text-brand-maroon">{message}</p>}
         </div>}
-      </section>
+      </section>}
 
       {verifiedOrder && (
         <section className="rounded-2xl border border-brand-maroon/20 bg-white p-3 shadow-sm sm:p-6">
@@ -505,6 +526,22 @@ export default function AdminOrders() {
           <p className="mt-1 text-sm text-gray-500">Review availability, adjust what can be prepared, then confirm the order.</p>
           <p className="mt-1 text-sm text-gray-500">ઉપલબ્ધતા તપાસો, તૈયાર કરી શકાય તેવું પ્રમાણ નક્કી કરો અને પછી ઓર્ડર કન્ફર્મ કરો.</p>
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-500"><span><strong className="text-gray-700">1.</strong> Select items · વસ્તુઓ પસંદ કરો</span><span><strong className="text-gray-700">2.</strong> Set quantity or weight · જથ્થો/વજન નક્કી કરો</span><span><strong className="text-gray-700">3.</strong> Add a note if needed · જરૂર હોય તો નોંધ લખો</span><span><strong className="text-gray-700">4.</strong> Confirm preparation · તૈયારી કન્ફર્મ કરો</span></div>
+          <figure className="mt-4 max-w-lg overflow-hidden rounded-2xl border border-gray-200 bg-gray-950 shadow-sm">
+            <video
+              className="aspect-video w-full object-contain"
+              controls
+              playsInline
+              preload="metadata"
+              poster="/videos/admin-panel-guide-poster.jpg"
+              aria-label="Quick admin guide for handling General Store orders"
+            >
+              <source src="/videos/admin-panel-guide.mp4" type="video/mp4" />
+              Your browser does not support video playback.
+            </video>
+            <figcaption className="px-3 py-2.5 text-xs font-semibold text-white/80 sm:px-4">
+              Quick learning · Admin order handling walkthrough
+            </figcaption>
+          </figure>
           <div className="mt-3 flex w-full rounded-xl border border-gray-200 bg-white p-1 sm:mt-4 sm:w-fit">
             {[
               { key: "active" as const, label: "Active orders", count: activeOrders.length },
@@ -635,8 +672,8 @@ export default function AdminOrders() {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 border-t border-gray-100 pt-4 lg:justify-end">
-                  {availableStatuses(order.status).map((status) => (
+                {(owner || staff) && <div className="flex flex-wrap gap-2 border-t border-gray-100 pt-4 lg:justify-end">
+                  {availableStatuses(order.status).filter((status) => owner || status === order.status || status === "READY_FOR_PICKUP").map((status) => (
                     <button
                       key={status}
                       onClick={() => void updateOrderStatus(order, status)}
@@ -649,7 +686,7 @@ export default function AdminOrders() {
                       {statusLabels[status] || status}
                     </button>
                   ))}
-                </div>
+                </div>}
               </div>
             ))}
               </>}
