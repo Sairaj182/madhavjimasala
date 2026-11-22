@@ -21,7 +21,7 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
       - name: Deploy through SSM
         env:
           INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
