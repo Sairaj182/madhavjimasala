@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "@repo/db";
-import { isAdminRole, requireAdmin, requireAuth } from "../middleware/auth";
+import { isAdminRole, isOwnerRole, isStaffRole, requireAdmin, requireAuth, requireOwner } from "../middleware/auth";
 import { z } from "zod";
 import { randomInt } from "node:crypto";
 import { notifyUser } from "../lib/push";
@@ -105,6 +105,11 @@ export async function orderRoutes(app: FastifyInstance) {
     });
     if (!order || (order.userId !== userId && !isAdminRole((request as any).user.role))) {
       return reply.status(404).send({ error: "Order not found" });
+    }
+    if (!isOwnerRole((request as any).user.role)) {
+      const { pickupNumber: _pickupNumber, ...staffOrder } = order;
+      void _pickupNumber;
+      return reply.send(staffOrder);
     }
     return reply.send(order);
   });
@@ -392,7 +397,7 @@ export async function orderRoutes(app: FastifyInstance) {
     }
   });
 
-  app.post("/lookup", { preHandler: requireAdmin }, async (request, reply) => {
+  app.post("/lookup", { preHandler: requireOwner }, async (request, reply) => {
     try {
       const { pickupCode } = pickupCodeSchema.parse(request.body);
       const order = await prisma.order.findUnique({
@@ -418,6 +423,9 @@ export async function orderRoutes(app: FastifyInstance) {
     try {
       const { id } = request.params as { id: string };
       const { status } = updateOrderStatusSchema.parse(request.body);
+      if (isStaffRole((request as any).user.role) && status !== "READY_FOR_PICKUP") {
+        return reply.status(403).send({ error: "Staff can only mark reviewed orders ready for pickup" });
+      }
       const currentOrder = await prisma.order.findUnique({ where: { id } });
       if (!currentOrder) {
         return reply.status(404).send({ error: "Order not found" });
@@ -450,7 +458,7 @@ export async function orderRoutes(app: FastifyInstance) {
   });
 
   // Admin: verify the customer pickup code before recording payment or collection.
-  app.patch("/:id/fulfillment", { preHandler: requireAdmin }, async (request, reply) => {
+  app.patch("/:id/fulfillment", { preHandler: requireOwner }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const { pickupCode, pickedUp, paymentPaid } = fulfillmentSchema.parse(request.body);
@@ -505,7 +513,7 @@ export async function orderRoutes(app: FastifyInstance) {
     }
   });
 
-  app.post("/:id/verify-pickup", { preHandler: requireAdmin }, async (request, reply) => {
+  app.post("/:id/verify-pickup", { preHandler: requireOwner }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const { pickupCode } = pickupCodeSchema.parse(request.body);

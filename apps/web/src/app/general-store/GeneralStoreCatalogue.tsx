@@ -95,11 +95,46 @@ export default function GeneralStoreCatalogue({ products }: { products: Product[
   return (
     <main className="min-h-screen bg-brand-cream/30 px-4 py-10 sm:py-16">
       <div className="mx-auto max-w-7xl">
-        <section className="rounded-3xl bg-brand-maroon px-6 py-10 text-white shadow-card sm:px-10">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-gold">Everyday essentials</p>
-          <h1 className="mt-3 max-w-2xl font-heading text-4xl font-bold sm:text-5xl">Your neighbourhood store, ready for pickup.</h1>
-          <p className="mt-4 max-w-xl text-sm leading-6 text-white/80">Choose a packing, set your quantity, and collect your order from Madhavji Masala. Payment is made at pickup.</p>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-white/80">પેકિંગ પસંદ કરો, જથ્થો નક્કી કરો અને Madhavji Masala પરથી ઓર્ડર લઈ જાઓ. ચુકવણી પિકઅપ સમયે જ થશે.</p>
+        <section className="overflow-hidden rounded-3xl border border-brand-gold/20 bg-white shadow-card lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.85fr)]">
+          <div className="px-6 py-9 sm:px-10 sm:py-12 lg:px-14">
+            <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.2em] text-brand-maroon">
+              <span className="h-px w-8 bg-brand-gold" aria-hidden="true" /> Everyday essentials
+            </div>
+            <h1 className="mt-5 max-w-2xl font-heading text-3xl font-bold leading-tight text-brand-dark sm:text-4xl lg:text-5xl">Your neighbourhood store, <span className="text-brand-maroon">ready for pickup.</span></h1>
+            <p className="mt-5 max-w-2xl text-sm leading-7 text-brand-gray sm:text-base">Choose a packing, set your quantity, and collect your order from Madhavji Masala.</p>
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-brand-gray">પેકિંગ પસંદ કરો, જથ્થો નક્કી કરો અને તમારો ઓર્ડર સ્ટોર પરથી લઈ જાઓ.</p>
+            <div className="mt-7 inline-flex items-center gap-2 rounded-full border border-brand-gold/30 bg-brand-cream px-4 py-2 text-sm font-semibold text-brand-maroon">
+              <span className="h-2 w-2 rounded-full bg-brand-gold" aria-hidden="true" /> Pay at pickup · ચુકવણી પિકઅપ સમયે
+            </div>
+          </div>
+          <div className="flex flex-col justify-center bg-brand-maroon px-6 py-9 text-white sm:px-10 lg:px-9">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-gold-light">New to the store?</p>
+            <h2 className="mt-3 font-heading text-2xl font-bold sm:text-3xl">Ordering is simple.</h2>
+            <p className="mt-3 text-sm leading-6 text-white/85">Sign in, choose your products, pick a collection time, and follow your order.</p>
+            <p className="mt-2 text-sm leading-6 text-white/85">Sign In કરો, વસ્તુઓ પસંદ કરો અને પિકઅપનો સમય નક્કી કરો.</p>
+            <figure className="mt-5 overflow-hidden rounded-2xl border border-white/20 bg-brand-dark/20 shadow-lg">
+              <video
+                className="aspect-video w-full object-cover"
+                autoPlay
+                controls
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                poster="/videos/general-store-order-guide-poster.jpg"
+                aria-label="Quick video guide showing how to sign up and place a General Store pickup order"
+              >
+                <source src="/videos/general-store-order-guide.mp4" type="video/mp4" />
+                Your browser does not support video playback. Use the How to order guide below.
+              </video>
+              <figcaption className="px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-white/70">
+                Quick guide · Sign up to pickup order
+              </figcaption>
+            </figure>
+            <Link href="/order-guide" className="mt-6 inline-flex w-fit items-center gap-3 rounded-full bg-white px-5 py-3 text-sm font-bold text-brand-maroon transition hover:bg-brand-cream focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+              How to order <span aria-hidden="true">→</span>
+            </Link>
+          </div>
         </section>
 
         <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-brand-border bg-white p-4 shadow-sm sm:flex-row">

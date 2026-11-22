@@ -92,7 +92,9 @@ export default function Footer() {
             </div>
             <div className="flex w-full max-w-md flex-col gap-3 sm:w-auto sm:flex-row sm:gap-2">
               <input
+                id="footer-newsletter-email"
                 type="email"
+                aria-label="Email address for newsletter"
                 placeholder="Your email address"
                 className="w-full sm:flex-1 rounded-full bg-white/10 px-5 py-3 text-sm text-white placeholder-white/40 outline-none ring-1 ring-white/10 transition-all focus:ring-brand-gold sm:w-64"
               />

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "@repo/db";
-import { requireAdmin, requireAuth } from "../middleware/auth";
+import { requireOwner } from "../middleware/auth";
 import { z } from "zod";
 import { getGeneralStoreControls } from "../lib/general-store-settings";
 
@@ -41,7 +41,7 @@ export async function pickupRoutes(app: FastifyInstance) {
   });
 
   // Admin Routes
-  app.get("/slots/all", { preHandler: requireAdmin }, async (request, reply) => {
+  app.get("/slots/all", { preHandler: requireOwner }, async (request, reply) => {
     const slots = await prisma.pickupSlot.findMany({
       orderBy: [
         { date: 'desc' },
@@ -50,7 +50,7 @@ export async function pickupRoutes(app: FastifyInstance) {
     });
     return reply.send(slots);
   });
-  app.post("/slots", { preHandler: requireAdmin }, async (request, reply) => {
+  app.post("/slots", { preHandler: requireOwner }, async (request, reply) => {
     try {
       const data = createSlotSchema.parse(request.body);
       const slot = await prisma.pickupSlot.create({ data });
@@ -60,7 +60,7 @@ export async function pickupRoutes(app: FastifyInstance) {
     }
   });
 
-  app.delete("/slots/:id", { preHandler: requireAdmin }, async (request, reply) => {
+  app.delete("/slots/:id", { preHandler: requireOwner }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       await prisma.pickupSlot.delete({ where: { id } });

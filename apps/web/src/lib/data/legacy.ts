@@ -80,15 +80,14 @@ export const valuesData = [
   {
     title: 'Family Trust',
     icon: 'Heart',
-    description: 'A legacy of relationships spanning four generations.'
+    description: 'Relationships built through generations of honest family enterprise.'
   }
 ];
 
 export const countersData = [
-  { label: 'Years of Heritage', value: 94, suffix: '+' },
-  { label: 'Generations', value: 4, suffix: '' },
-  { label: 'Products', value: 50, suffix: '+' },
-  { label: 'Customers Served', value: 1, suffix: 'M+' }
+  { label: 'Established', value: 1930, suffix: '' },
+  { label: 'Documented Generations', value: 3, suffix: '' },
+  { label: 'Timeline Chapters', value: 5, suffix: '' }
 ];
 
 export const currentLeadershipData = [

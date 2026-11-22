@@ -139,7 +139,7 @@ export default function ContactPage() {
                 </div>
                 <div className="relative z-10">
                   <p className="text-sm font-bold">Quick Support</p>
-                  <p className="text-xs text-white/90">Chat with our export executive</p>
+                  <p className="text-xs text-white/90">Chat with the Madhavji Masala team</p>
                 </div>
                 <svg className="ml-auto h-5 w-5 transition-transform group-hover:translate-x-1 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
@@ -266,21 +266,20 @@ export default function ContactPage() {
 
                 <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-brand-gold/10 px-4 py-2 text-xs font-bold text-brand-gold border border-brand-gold/30">
                   <span className="h-2 w-2 rounded-full bg-brand-gold animate-pulse" />
-                  CERTIFIED ORIGIN
+                  VISIT US IN VADODARA
                 </div>
 
                 <h3 className="mt-4 font-heading text-3xl font-bold sm:text-4xl">
-                  <span className="text-white">The </span>
-                  <span className="text-brand-gold">Spice Heart</span>
+                  <span className="text-white">Madhavji Masala </span>
+                  <span className="text-brand-gold">Mill</span>
                 </h3>
                 <p className="mx-auto mt-4 max-w-md text-sm text-white/70 leading-relaxed">
-                  Our spices originate from India&apos;s most fertile spice-growing
-                  regions. Our facilities in Gujarat — the heart of India&apos;s
-                  spice trade — ensure freshness from farm to shelf.
+                  Find us at 5, Vasant Engineering Compound, Dabhoi Road,
+                  opposite Yamuna Mill Road, Vadodara, Gujarat.
                 </p>
 
                 <a
-                  href="https://maps.google.com/?q=Unjha+Gujarat+India"
+                  href="https://maps.google.com/?q=Madhavji+Masala+Mill%2C+5+Vasant+Engineering+Compound%2C+Dabhoi+Road%2C+Vadodara%2C+Gujarat"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group mt-8 inline-flex items-center gap-2 rounded-full border border-brand-gold/40 px-6 py-3 text-sm font-semibold text-brand-gold transition-all hover:bg-brand-gold/10 hover:border-brand-gold hover:shadow-[0_4px_20px_rgba(212,160,23,0.2)]"

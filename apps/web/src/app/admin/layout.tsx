@@ -7,6 +7,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { SITE_INFO } from "@/lib/constants";
+import { isBackofficeRole, isOwnerRole, isStaffRole } from "@/lib/admin-roles";
 
 const ADMIN_NAV = [
   { name: "Dashboard", href: "/admin", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
@@ -14,12 +15,11 @@ const ADMIN_NAV = [
   { name: "General Store", href: "/admin/general-store", icon: "M3 3h18v18H3zM7 7h10M7 12h10M7 17h6" },
   { name: "Categories", href: "/admin/categories", icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" },
   { name: "Orders", href: "/admin/orders", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
+  { name: "Admin Guide", href: "/admin/guide", icon: "M4 5a2 2 0 012-2h8a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm4 2h4m-4 4h4m-4 4h2" },
+  { name: "Team", href: "/admin/users", icon: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2m8-8a4 4 0 100-8 4 4 0 000 8zm6-3a3 3 0 110-6m4 17v-2a4 4 0 00-3-3.87" },
+  { name: "Comments", href: "/admin/testimonials", icon: "M8 10h8m-8 4h5M5 4h14a2 2 0 012 2v10a2 2 0 01-2 2H9l-4 3v-3a2 2 0 01-2-2V6a2 2 0 012-2z" },
   { name: "Time Slots", href: "/admin/timeslots", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
 ];
-
-function isSuperAdminRole(role?: string | null) {
-  return ["SUPER_ADMIN", "super_admin", "superadmin"].includes(role ?? "");
-}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -27,16 +27,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { data: session, isPending } = authClient.useSession();
   const [authorized, setAuthorized] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const owner = isOwnerRole(session?.user.role);
+  const staff = isStaffRole(session?.user.role);
 
   useEffect(() => {
     if (!isPending) {
-      if (!session || !["ADMIN", "admin", "SUPER_ADMIN", "super_admin", "superadmin"].includes(session.user.role ?? "")) {
+      if (!session || !isBackofficeRole(session.user.role)) {
         router.push("/");
+      } else if (staff && ["/admin/settings", "/admin/users", "/admin/categories", "/admin/timeslots", "/admin/testimonials"].some((path) => pathname.startsWith(path))) {
+        router.push("/admin");
       } else {
         setAuthorized(true);
       }
     }
-  }, [session, isPending, router]);
+  }, [session, isPending, router, pathname, staff]);
 
   if (!authorized) {
     return (
@@ -64,7 +68,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         
         <nav className="flex-1 px-4 py-6 space-y-2">
-          {[...ADMIN_NAV, ...(isSuperAdminRole(session?.user.role)
+          {[...ADMIN_NAV.filter((item) => owner || ["Dashboard", "Products", "General Store", "Orders", "Admin Guide"].includes(item.name)), ...(owner
             ? [{ name: "Settings", href: "/admin/settings", icon: "M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM19.4 15a1.7 1.7 0 00.3 1.9l.1.1-1.8 1.8-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6v.2h-2.5V20a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1-1.8-1.8.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.6-1H6v-2.5h.2a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1 1.8-1.8.1.1a1.7 1.7 0 001.9.3 1.7 1.7 0 001-1.6V5h2.5v.2a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1 1.8 1.8-.1.1a1.7 1.7 0 00-.3 1.9 1.7 1.7 0 001.6 1h.2v2.5h-.2a1.7 1.7 0 00-1.6 1z" }] : [])].map((item) => {
             const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/admin");
             return (

@@ -103,7 +103,7 @@ export default function ThenAndNow() {
               Modern Madhavji Masala
             </h3>
             <p className="text-sm md:text-base text-white/70 leading-relaxed">
-              State-of-the-art manufacturing facility ensuring consistency and hygiene while preserving traditional flavors.
+              The family&apos;s spice manufacturing chapter, focused on consistency, hygiene, and authentic flavour.
             </p>
           </motion.div>
 

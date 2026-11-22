@@ -1,25 +1,131 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV_LINKS, SITE_INFO } from "@/lib/constants";
+import { SITE_INFO } from "@/lib/constants";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useCart } from "@/contexts/CartContext";
 import { authClient } from "@/lib/auth-client";
+import { isBackofficeRole } from "@/lib/admin-roles";
 
-const ADMIN_ROLES = new Set(["ADMIN", "admin", "SUPER_ADMIN", "super_admin", "superadmin"]);
+type DesktopMenu = "shop" | "discover" | "account";
+
+function MobileNavGroup({
+  label,
+  menu,
+  openMenu,
+  setOpenMenu,
+  active,
+  links,
+  footer,
+}: {
+  label: string;
+  menu: DesktopMenu;
+  openMenu: DesktopMenu | null;
+  setOpenMenu: (menu: DesktopMenu | null) => void;
+  active: boolean;
+  links: Array<{ label: string; href: string }>;
+  footer?: ReactNode;
+}) {
+  const isOpen = openMenu === menu;
+
+  return (
+    <div className="border-b border-brand-border/70 pb-3 last:border-b-0">
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        onClick={() => setOpenMenu(isOpen ? null : menu)}
+        className={`flex w-full items-center justify-between py-2 text-left text-sm font-bold uppercase tracking-widest transition-colors ${active || isOpen ? "text-brand-maroon" : "text-brand-dark/80 hover:text-brand-maroon"}`}
+      >
+        {label}
+        <svg className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+        </svg>
+      </button>
+      {isOpen && (
+        <div className="mt-1 space-y-1 pl-3">
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setOpenMenu(null)}
+              className={`block rounded-lg px-3 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${pathnameForLink(link.href) ? "text-brand-maroon" : "text-brand-dark/65 hover:bg-brand-cream hover:text-brand-maroon"}`}
+            >
+              {link.label}
+            </Link>
+          ))}
+          {footer && <div className="border-t border-brand-border/70 pt-1">{footer}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function pathnameForLink(href: string) {
+  if (typeof window === "undefined") return false;
+  return window.location.pathname === href || (href !== "/" && window.location.pathname.startsWith(href));
+}
+
+function DesktopNavMenu({
+  label,
+  menu,
+  openMenu,
+  setOpenMenu,
+  active,
+  links,
+  footer,
+}: {
+  label: string;
+  menu: DesktopMenu;
+  openMenu: DesktopMenu | null;
+  setOpenMenu: (menu: DesktopMenu | null) => void;
+  active: boolean;
+  links: Array<{ label: string; href: string }>;
+  footer?: ReactNode;
+}) {
+  const isOpen = openMenu === menu;
+
+  return (
+    <div className="relative" onMouseLeave={() => setOpenMenu(null)}>
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        onClick={() => setOpenMenu(isOpen ? null : menu)}
+        className={`flex items-center gap-1 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors 2xl:text-xs 2xl:tracking-widest ${active || isOpen ? "text-brand-maroon" : "text-brand-dark hover:text-brand-maroon"}`}
+      >
+        {label}
+        <svg className={`h-3.5 w-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+        </svg>
+      </button>
+      {isOpen && (
+        <div className="absolute left-1/2 top-full z-50 min-w-48 -translate-x-1/2 overflow-hidden rounded-xl border border-brand-border bg-white py-2 shadow-xl">
+          {links.map((link) => (
+            <Link key={link.href} href={link.href} onClick={() => setOpenMenu(null)} className="block px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-dark hover:bg-brand-cream hover:text-brand-maroon">
+              {link.label}
+            </Link>
+          ))}
+          {footer && <div className="mt-1 border-t border-brand-border pt-1">{footer}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [openDesktopMenu, setOpenDesktopMenu] = useState<"shop" | "discover" | "account" | null>(null);
   const pathname = usePathname();
   const { cartItems } = useCart();
   const { data: session } = authClient.useSession();
   const cartItemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
-  const canAccessAdminPanel = ADMIN_ROLES.has(session?.user?.role ?? "");
+  const canAccessAdminPanel = isBackofficeRole(session?.user?.role);
+  const loginHref = pathname ? `/login?callbackUrl=${encodeURIComponent(pathname)}` : "/login";
 
 
   useEffect(() => {
@@ -31,6 +137,7 @@ export default function Header() {
   // Close mobile menu on route change
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setOpenDesktopMenu(null);
   }, [pathname]);
 
   if (pathname?.startsWith("/admin")) return null;
@@ -73,63 +180,61 @@ export default function Header() {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-4 xl:flex 2xl:gap-7">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="group relative whitespace-nowrap py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-brand-dark transition-colors hover:text-brand-maroon 2xl:text-xs 2xl:tracking-widest"
-              >
-                {link.label}
-                <span
-                  className={`absolute bottom-0 left-0 h-[2px] bg-brand-maroon transition-all duration-300 ${
-                    pathname === link.href ? "w-full" : "w-0 group-hover:w-full"
-                  }`}
-                />
-              </Link>
-            ))}
-            <Link
-              href="/orders"
-              className={`group relative whitespace-nowrap py-2 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors 2xl:text-xs 2xl:tracking-widest ${
-                pathname === "/orders" ? "text-brand-maroon" : "text-brand-dark hover:text-brand-maroon"
-              }`}
-            >
-              Orders
-              <span className={`absolute bottom-0 left-0 h-[2px] bg-brand-maroon transition-all duration-300 ${
-                pathname === "/orders" ? "w-full" : "w-0 group-hover:w-full"
-              }`} />
+          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-2 xl:flex 2xl:gap-4">
+            <Link href="/" className={`px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors 2xl:text-xs 2xl:tracking-widest ${pathname === "/" ? "text-brand-maroon" : "text-brand-dark hover:text-brand-maroon"}`}>
+              Home
             </Link>
-            {canAccessAdminPanel && (
-              <Link
-                href="/admin"
-                className={`group relative whitespace-nowrap py-2 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors 2xl:text-xs 2xl:tracking-widest ${
-                  pathname?.startsWith("/admin") ? "text-brand-maroon" : "text-brand-dark hover:text-brand-maroon"
-                }`}
-              >
-                Admin Panel
-                <span className={`absolute bottom-0 left-0 h-[2px] bg-brand-maroon transition-all duration-300 ${
-                  pathname?.startsWith("/admin") ? "w-full" : "w-0 group-hover:w-full"
-                }`} />
-              </Link>
-            )}
-            {session?.user ? (
-              <button
-                onClick={() => void authClient.signOut()}
-                className="group relative whitespace-nowrap py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-brand-dark hover:text-brand-maroon 2xl:text-xs 2xl:tracking-widest"
-              >
-                Logout
-              </button>
-            ) : (
-              <Link href="/login" className="group relative whitespace-nowrap py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-brand-dark hover:text-brand-maroon 2xl:text-xs 2xl:tracking-widest">
-                Login
-              </Link>
-            )}
+
+            <DesktopNavMenu
+              label="Shop"
+              menu="shop"
+              openMenu={openDesktopMenu}
+              setOpenMenu={setOpenDesktopMenu}
+              active={pathname === "/products" || pathname?.startsWith("/general-store") || pathname === "/orders"}
+              links={[
+                { label: "Products", href: "/products" },
+                { label: "General Store", href: "/general-store" },
+                { label: "Your Orders", href: "/orders" },
+              ]}
+            />
+            <DesktopNavMenu
+              label="Discover"
+              menu="discover"
+              openMenu={openDesktopMenu}
+              setOpenMenu={setOpenDesktopMenu}
+              active={["/about", "/certifications", "/contact"].includes(pathname ?? "")}
+              links={[
+                { label: "About Us", href: "/about" },
+                { label: "Certifications", href: "/certifications" },
+                { label: "Contact", href: "/contact" },
+              ]}
+            />
+            <DesktopNavMenu
+              label="Account"
+              menu="account"
+              openMenu={openDesktopMenu}
+              setOpenMenu={setOpenDesktopMenu}
+              active={pathname?.startsWith("/admin")}
+              links={[
+                ...(canAccessAdminPanel ? [{ label: "Admin Panel", href: "/admin" }] : []),
+              ]}
+              footer={session?.user ? (
+                <button type="button" onClick={() => void authClient.signOut()} className="w-full px-4 py-2 text-left text-xs font-bold uppercase tracking-widest text-brand-dark hover:bg-brand-cream hover:text-brand-maroon">
+                  Logout
+                </button>
+              ) : (
+                <Link href={loginHref} className="block px-4 py-2 text-xs font-bold uppercase tracking-widest text-brand-dark hover:bg-brand-cream hover:text-brand-maroon">
+                  Login
+                </Link>
+              )}
+            />
           </nav>
 
           {/* CTA + Mobile Toggle */}
           <div className="flex shrink-0 items-center gap-2 sm:gap-4 2xl:gap-6">
             <Link
               href="/cart"
+              aria-label={`Shopping cart${cartItemCount > 0 ? `, ${cartItemCount} items` : ""}`}
               className="relative flex items-center justify-center p-2 text-brand-dark hover:text-brand-maroon transition-colors"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -197,67 +302,45 @@ export default function Header() {
               }}
               className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-8"
             >
-              {NAV_LINKS.map((link) => (
-                <motion.div
-                  key={link.href}
-                  variants={{
-                    closed: { opacity: 0, x: -15 },
-                    open: { opacity: 1, x: 0 }
-                  }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                >
-                  <Link
-                    href={link.href}
-                    className={`block text-sm font-bold uppercase tracking-widest transition-colors ${
-                      pathname === link.href
-                        ? "text-brand-maroon"
-                        : "text-brand-dark/70 hover:text-brand-maroon"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                </motion.div>
-              ))}
-              <motion.div
-                variants={{
-                  closed: { opacity: 0, x: -15 },
-                  open: { opacity: 1, x: 0 }
-                }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-              >
-                <Link href="/orders" className="block text-sm font-bold uppercase tracking-widest text-brand-dark/70 hover:text-brand-maroon">
-                  Orders
+              <motion.div variants={{ closed: { opacity: 0, x: -15 }, open: { opacity: 1, x: 0 } }} transition={{ duration: 0.3, ease: "easeOut" }}>
+                <Link href="/" className={`block py-2 text-sm font-bold uppercase tracking-widest transition-colors ${pathname === "/" ? "text-brand-maroon" : "text-brand-dark/70 hover:text-brand-maroon"}`}>
+                  Home
                 </Link>
               </motion.div>
-              {canAccessAdminPanel && (
-                <motion.div
-                  variants={{
-                    closed: { opacity: 0, x: -15 },
-                    open: { opacity: 1, x: 0 }
-                  }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                >
-                  <Link href="/admin" className="block text-sm font-bold uppercase tracking-widest text-brand-dark/70 hover:text-brand-maroon">
-                    Admin Panel
-                  </Link>
-                </motion.div>
-              )}
-              <motion.div
-                variants={{
-                  closed: { opacity: 0, x: -15 },
-                  open: { opacity: 1, x: 0 }
-                }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-              >
-                {session?.user ? (
-                  <button onClick={() => void authClient.signOut()} className="block text-sm font-bold uppercase tracking-widest text-brand-dark/70 hover:text-brand-maroon">
-                    Logout
-                  </button>
-                ) : (
-                  <Link href="/login" className="block text-sm font-bold uppercase tracking-widest text-brand-dark/70 hover:text-brand-maroon">
-                    Login
-                  </Link>
-                )}
+              <motion.div variants={{ closed: { opacity: 0, x: -15 }, open: { opacity: 1, x: 0 } }} transition={{ duration: 0.3, ease: "easeOut" }}>
+                <MobileNavGroup
+                  label="Shop"
+                  menu="shop"
+                  openMenu={openDesktopMenu}
+                  setOpenMenu={setOpenDesktopMenu}
+                  active={pathname === "/products" || pathname?.startsWith("/general-store") || pathname === "/orders"}
+                  links={[{ label: "Products", href: "/products" }, { label: "General Store", href: "/general-store" }, { label: "Your Orders", href: "/orders" }]}
+                />
+              </motion.div>
+              <motion.div variants={{ closed: { opacity: 0, x: -15 }, open: { opacity: 1, x: 0 } }} transition={{ duration: 0.3, ease: "easeOut" }}>
+                <MobileNavGroup
+                  label="Discover"
+                  menu="discover"
+                  openMenu={openDesktopMenu}
+                  setOpenMenu={setOpenDesktopMenu}
+                  active={["/about", "/certifications", "/contact"].includes(pathname ?? "")}
+                  links={[{ label: "About Us", href: "/about" }, { label: "Certifications", href: "/certifications" }, { label: "Contact", href: "/contact" }]}
+                />
+              </motion.div>
+              <motion.div variants={{ closed: { opacity: 0, x: -15 }, open: { opacity: 1, x: 0 } }} transition={{ duration: 0.3, ease: "easeOut" }}>
+                <MobileNavGroup
+                  label="Account"
+                  menu="account"
+                  openMenu={openDesktopMenu}
+                  setOpenMenu={setOpenDesktopMenu}
+                  active={pathname?.startsWith("/admin")}
+                  links={canAccessAdminPanel ? [{ label: "Admin Panel", href: "/admin" }] : []}
+                  footer={session?.user ? (
+                    <button type="button" onClick={() => void authClient.signOut()} className="block w-full px-3 py-2.5 text-left text-xs font-bold uppercase tracking-widest text-brand-dark/65 hover:text-brand-maroon">Logout</button>
+                  ) : (
+                    <Link href={loginHref} onClick={() => setOpenDesktopMenu(null)} className="block px-3 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-dark/65 hover:text-brand-maroon">Login</Link>
+                  )}
+                />
               </motion.div>
               <motion.div 
                 variants={{

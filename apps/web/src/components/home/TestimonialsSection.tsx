@@ -1,13 +1,30 @@
 "use client";
 
-import { useState } from "react";
-import { TESTIMONIALS } from "@/lib/constants";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { authClient } from "@/lib/auth-client";
 import { ScrollReveal } from "@/components/shared/ScrollReveal";
 
 export default function TestimonialsSection() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "/api";
+  const { data: session } = authClient.useSession();
   const [isPaused, setIsPaused] = useState(false);
-  const [testimonialsList, setTestimonialsList] = useState(TESTIMONIALS);
+  const [testimonialsList, setTestimonialsList] = useState<Array<{ id: string; name: string; title: string; company?: string | null; quote: string; rating: number }>>([]);
+  const [isLoadingTestimonials, setIsLoadingTestimonials] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    fetch(`${apiUrl}/testimonials`).then((response) => {
+      if (!response.ok) throw new Error("Unable to load comments");
+      return response.json();
+    }).then((data) => { if (active) setTestimonialsList(data); })
+      .catch(() => { if (active) setFeedback("Comments are temporarily unavailable."); })
+      .finally(() => { if (active) setIsLoadingTestimonials(false); });
+    return () => { active = false; };
+  }, [apiUrl]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -17,23 +34,20 @@ export default function TestimonialsSection() {
     rating: 5,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.quote) return;
-
-    const newTestimonial = {
-      id: Date.now().toString(),
-      name: formData.name,
-      title: formData.title || "Customer",
-      company: formData.company,
-      quote: formData.quote,
-      rating: Number(formData.rating),
-      image: ""
-    };
-
-    setTestimonialsList((prev) => [newTestimonial, ...prev]);
-    setIsModalOpen(false);
-    setFormData({ name: "", title: "", company: "", quote: "", rating: 5 });
+    setSubmitting(true);
+    setFeedback("");
+    try {
+      const response = await fetch(`${apiUrl}/testimonials`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Unable to submit comment");
+      setFeedback(data.message);
+      setIsModalOpen(false);
+      setFormData({ name: "", title: "", company: "", quote: "", rating: 5 });
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "Unable to submit comment");
+    } finally { setSubmitting(false); }
   };
 
   return (
@@ -51,11 +65,10 @@ export default function TestimonialsSection() {
           <div className="text-center">
             <span className="section-eyebrow">Testimonials</span>
             <h2 className="mt-4 font-heading text-3xl font-bold text-brand-dark sm:text-4xl lg:text-5xl">
-              Trusted by <span className="text-brand-maroon">Culinary Experts</span>
+              Shared by <span className="text-brand-maroon">Our Customers</span>
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-brand-gray">
-              From Michelin-star kitchens to family homes, here&apos;s what our
-              partners say about the Madhavji Masala difference.
+              Read what customers say about Madhavji Masala, and share your own experience.
             </p>
           </div>
         </ScrollReveal>
@@ -67,11 +80,10 @@ export default function TestimonialsSection() {
             <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 sm:w-24 bg-gradient-to-r from-brand-cream to-transparent" />
             <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 sm:w-24 bg-gradient-to-l from-brand-cream to-transparent" />
 
-            <div
+            {isLoadingTestimonials ? <p className="py-8 text-center text-sm text-brand-gray" role="status">Loading comments…</p> : testimonialsList.length > 0 ? <div
               className={`flex w-max gap-6 sm:gap-8 animate-[marquee_40s_linear_infinite] ${isPaused ? '[animation-play-state:paused]' : ''}`}
               onMouseEnter={() => setIsPaused(true)}
               onMouseLeave={() => setIsPaused(false)}
-              onClick={() => setIsPaused(!isPaused)}
             >
               {[...testimonialsList, ...testimonialsList].map((testimonial, index) => (
                 <div key={`${testimonial.id}-${index}`} className="w-[300px] sm:w-[380px] shrink-0 py-2">
@@ -93,7 +105,7 @@ export default function TestimonialsSection() {
                     </div>
 
                     {/* Quote */}
-                    <p className="mt-4 text-sm leading-relaxed text-brand-dark/80 italic flex-grow">
+                    <p className="mt-4 line-clamp-5 flex-grow break-words text-sm italic leading-relaxed text-brand-dark/80 [overflow-wrap:anywhere]">
                       &ldquo;{testimonial.quote}&rdquo;
                     </p>
 
@@ -119,16 +131,20 @@ export default function TestimonialsSection() {
                   </div>
                 </div>
               ))}
-            </div>
+            </div> : <p className="py-8 text-center text-sm text-brand-gray">Be the first to share your experience.</p>}
           </div>
         </ScrollReveal>
 
         {/* Add Compliment Button */}
         <ScrollReveal animation="fade-up" delay="delay-300">
-          <div className="mt-12 flex justify-center">
+          <div className="mt-12 flex flex-col items-center gap-3">
+            {feedback && <p role="status" className="text-sm text-brand-maroon">{feedback}</p>}
+            {!session?.user && <Link href="/login?callbackUrl=%2F" className="text-sm font-semibold text-brand-maroon underline">Sign in to share your experience</Link>}
             <button
+              type="button"
               onClick={() => setIsModalOpen(true)}
-              className="group inline-flex items-center gap-2 rounded-full border-2 border-brand-maroon/30 bg-transparent px-8 py-3.5 font-semibold text-brand-maroon transition-all duration-300 hover:bg-brand-maroon hover:text-white hover:border-brand-maroon hover:shadow-[0_8px_30px_rgba(139,26,26,0.25)]"
+              disabled={!session?.user}
+              className="group inline-flex items-center gap-2 rounded-full border-2 border-brand-maroon/30 bg-transparent px-8 py-3.5 font-semibold text-brand-maroon transition-all duration-300 hover:bg-brand-maroon hover:text-white hover:border-brand-maroon hover:shadow-[0_8px_30px_rgba(139,26,26,0.25)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <svg className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -161,8 +177,8 @@ export default function TestimonialsSection() {
                 <input
                   required
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={session?.user.name || ""}
+                  readOnly
                   className="w-full rounded-xl border border-brand-border px-4 py-2.5 focus:border-brand-maroon focus:outline-none focus:ring-1 focus:ring-brand-maroon transition-colors"
                   placeholder="John Doe"
                 />
@@ -207,11 +223,13 @@ export default function TestimonialsSection() {
                 />
               </div>
 
+              {feedback && <p role="alert" className="text-sm text-red-700">{feedback}</p>}
               <button
                 type="submit"
+                disabled={submitting}
                 className="w-full mt-4 rounded-xl bg-brand-maroon py-3.5 font-semibold text-white transition-all hover:bg-brand-maroon-dark active:scale-[0.98] shadow-[0_4px_16px_rgba(139,26,26,0.25)]"
               >
-                Submit Compliment
+                {submitting ? "Submitting…" : "Submit Comment"}
               </button>
             </form>
           </div>

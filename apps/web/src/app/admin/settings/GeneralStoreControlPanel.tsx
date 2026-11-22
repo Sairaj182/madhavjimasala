@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { isOwnerRole } from "@/lib/admin-roles";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
@@ -46,7 +47,7 @@ export default function GeneralStoreControlPanel() {
   const [message, setMessage] = useState("");
   const [controlPin, setControlPin] = useState("");
   const [unlocked, setUnlocked] = useState(false);
-  const isSuperAdmin = ["SUPER_ADMIN", "super_admin", "superadmin"].includes(session?.user.role ?? "");
+  const isSuperAdmin = isOwnerRole(session?.user.role);
   const dirty = JSON.stringify(controls) !== JSON.stringify(initial);
   const openRoutes = useMemo(() => [controls.generalStoreCatalogueOpen, controls.generalStoreCartOpen, controls.generalStoreCheckoutOpen, controls.generalStoreOrdersOpen, controls.generalStorePickupOpen].filter(Boolean).length, [controls]);
 
@@ -66,7 +67,7 @@ export default function GeneralStoreControlPanel() {
     } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to save controls"); } finally { setSaving(false); }
   };
 
-  if (!isSuperAdmin) return <div className="rounded-2xl border border-red-900/30 bg-red-950/20 p-6 text-sm font-semibold text-red-300">Super admin access is required.</div>;
+  if (!isSuperAdmin) return <div className="rounded-2xl border border-red-900/30 bg-red-950/20 p-6 text-sm font-semibold text-red-300">Store owner access is required.</div>;
 
   if (!unlocked) return <div className="mx-auto max-w-lg rounded-3xl border border-slate-700 bg-slate-950 p-6 text-white shadow-2xl sm:p-8"><p className="text-xs font-bold uppercase tracking-[0.25em] text-amber-400">Restricted operations</p><h1 className="mt-3 font-heading text-3xl font-bold">Unlock control centre</h1><p className="mt-3 text-sm leading-6 text-slate-400">Enter the separate control-centre PIN configured on the API server. It is never stored in this browser.</p><form onSubmit={(event) => { event.preventDefault(); setMessage(""); setLoading(true); setUnlocked(true); }} className="mt-6 space-y-4"><label className="block text-sm font-semibold text-slate-200">Control-centre PIN<input autoFocus type="password" inputMode="numeric" autoComplete="off" value={controlPin} onChange={(event) => setControlPin(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-lg tracking-[0.35em] text-white outline-none focus:border-amber-400" placeholder="Enter PIN" /></label><button type="submit" disabled={controlPin.length < 6 || loading} className="w-full rounded-xl bg-amber-500 px-4 py-3 font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40">{loading ? "Checking…" : "Unlock control centre"}</button>{message && <p role="alert" className="text-sm font-semibold text-red-300">{message}</p>}</form></div>;
 

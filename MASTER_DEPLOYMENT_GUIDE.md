@@ -416,6 +416,8 @@ Start the whole stack:
 
 Verify the health URL, login, catalog, image upload, checkout, orders, admin pages, and enabled notifications.
 
+The home page customer comments require the `20261112190000_add_testimonials` migration. Signed-in customers can submit one comment per day. New comments remain private until an admin approves them at `/admin/testimonials`; rejected comments are deleted. Check this flow after deploying both the API and web images from the same commit.
+
 ### Create the initial superadmin
 
 The API image includes the compiled `apps/api/dist/seed-superadmin.cjs` entry. After the migration has succeeded, connect with Session Manager and start a root shell. Enter the email and password interactively so the password is not written into shell history or the production environment file:

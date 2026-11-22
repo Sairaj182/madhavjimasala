@@ -14,9 +14,7 @@ import type {
   Product,
   ProductCategory,
   Certification,
-  Testimonial,
   ProcessStep,
-  JourneyStep,
   TrustFactor,
   AboutContent,
   FooterColumn,
@@ -26,7 +24,6 @@ import type {
 // ── Brand Info ───────────────────────────────
 
 export const YEAR_OF_ESTABLISHMENT: number = 1930;
-export const FAMILY_GENERATIONS: number = 3;
 export const SITE_INFO: SiteInfo = {
   name: "Madhavji Masala",
   tagline: "Pure Spices. Authentic Taste.",
@@ -538,93 +535,32 @@ export const TRUST_FACTORS: TrustFactor[] = [
   },
 ];
 
-// ── Journey Steps ────────────────────────────
-
-export const JOURNEY_STEPS: JourneyStep[] = [
-  {
-    id: "js-1",
-    title: "Grinding",
-    description: "Our state-of-the-art grinding technology ensures maximum flavor preservation and aroma in every blend.",
-    image: "/images/process/grinding.png"
-  },
-  {
-    id: "js-2",
-    title: "Blending",
-    description: "Our master blenders combine generations of expertise with precision-ground spices to create authentic, consistent blends.",
-    image: "/images/process/blending.png",
-  },
-  {
-    id: "js-3",
-    title: "Vibro Sifting",
-    description: "Our Vibro Sifting process ensures the perfect consistency and texture in every batch, free from lumps or impurities.",
-    image: "/images/process/vibro-sifter.png",
-  },
-  {
-    id: "js-4",
-    title: "Packaging",
-    description: "Sealed fresh in airtight packaging to preserve aroma, flavor, and potency.",
-    image: "/images/process/packaging.png",
-  },
-];
-
 // ── Process Steps (About Page) ───────────────
 
 export const PROCESS_STEPS: ProcessStep[] = [
   {
     id: "ps-1",
     number: "01",
-    title: "Ethical Selection",
+    title: "Careful Selection",
     description:
-      "We source our raw spices directly from trusted Indian farmers, paying fair-trade prices transparently and building long-term partnerships that ensure both quality and sustainability.",
+      "Raw spices are selected against defined quality requirements before they enter the production process.",
     image: "/images/process/sourcing.png",
   },
   {
     id: "ps-2",
     number: "02",
-    title: "Cryogenic Grinding",
+    title: "Controlled Grinding",
     description:
-      "Our cold-grinding technology ensures spice oils are preserved. Unlike conventional heat-producing methods, cryogenic grinding retains the full aromatic, color, and flavor profile of every spice.",
+      "The grinding process is carefully managed to retain the natural aroma, colour, and flavour of each spice.",
     image: "/images/process/grinding.png",
   },
   {
     id: "ps-3",
     number: "03",
-    title: "Micro-Batch Testing",
+    title: "Quality Checks",
     description:
-      "Every batch undergoes 24-layer quality checks for potency, safety and purity. Lab-certified by independent third parties, each batch meets the strictest food safety and quality standards.",
+      "Products are checked through the production and packing process for consistency, cleanliness, and quality.",
     image: "/images/process/testing.png",
-  },
-];
-
-// ── Testimonials ─────────────────────────────
-
-export const TESTIMONIALS: Testimonial[] = [
-  {
-    id: "test-1",
-    name: "Chef Rajesh Khanna",
-    title: "Executive Chef",
-    company: "The Oberoi, Mumbai",
-    quote:
-      "In 20 years of professional cooking, I've never found spices this consistently pure. Madhavji's turmeric has a curcumin richness that transforms every dish. This is what authentic Indian cooking demands.",
-    rating: 5,
-  },
-  {
-    id: "test-2",
-    name: "Priya Mehta",
-    title: "Founder",
-    company: "Spice Route Exports",
-    quote:
-      "We've been sourcing from Madhavji Masala for our international clients for over 8 years. Their quality consistency is unmatched — every shipment meets our strict export standards without exception.",
-    rating: 5,
-  },
-  {
-    id: "test-3",
-    name: "Amit Patel",
-    title: "Restaurant Owner",
-    company: "Gujarati Thali House",
-    quote:
-      "Switching to Madhavji Masala was the best decision for our restaurant chain. The flavor profiles are so consistent that our dishes taste exactly the same across all 12 locations.",
-    rating: 5,
   },
 ];
 
@@ -632,12 +568,12 @@ export const TESTIMONIALS: Testimonial[] = [
 
 export const ABOUT_CONTENT: AboutContent = {
   heritage: {
-    headline: "A Legacy Sculpted by",
-    highlightedText: "Saffron & Soil",
+    headline: "Rooted in Family",
+    highlightedText: "Made in Vadodara",
     story: [
-      "Since our inception, Madhavji Masala has been more than a brand. It is a custodian of India's culinary soul. We began as a small apothecary of flavor, dedicated to preserving the ancient art that makes a meal a memory.",
-      `Founded in ${YEAR_OF_ESTABLISHMENT} by Rasiklal Raithatha in the heart of Gujarat's spice country, we've grown from a humble grinding mill to one of the region's most trusted spice houses — without ever compromising on the principles that started it all.`,
-      `Today, ${FAMILY_GENERATIONS} generations of the Madhavji family continue this legacy, combining time-honored techniques with modern quality standards to deliver spices that honor tradition while meeting the demands of contemporary kitchens.`,
+      "Madhavji Masala is a family-run spice manufacturer based in Vadodara, guided by honest work, consistent quality, and customer trust.",
+      "Our work centres on careful raw-spice selection, controlled processing, hygienic handling, and dependable packing.",
+      "The complete family history, including its people, places, and milestones, is documented on our Legacy page.",
     ],
     image: "/images/about/heritage.png",
   },
@@ -645,18 +581,18 @@ export const ABOUT_CONTENT: AboutContent = {
     title: "Our Vision",
     description:
       "To redefine the standard of purity in the spice industry, ensuring that every household, regardless of geography, can access the authentic potent heart of traditional seasonings without compromise.",
-    highlights: ["100+ Products & Forms", "Sustainable Cold Grinding"],
+    highlights: ["Consistent quality", "Authentic spice blends"],
   },
   mission: {
     title: "Our Mission",
     description:
-      "Through ethical sourcing, artisanal processing, and rigorous scientific hygiene, we bridge the gap between ancient tradition and modern manufacturing excellence.",
+      "Through careful selection, controlled processing, and hygienic handling, we work to deliver dependable spices for everyday and professional kitchens.",
     highlights: ["FSSAI Certified"],
   },
   facility: {
-    headline: "The Modern Apothecary",
+    headline: "From Spice to Pack",
     subtitle:
-      "Where tradition meets technology. Explore our state-of-the-art facility designed for absolute hygiene, precision, and flavor preservation.",
+      "A clear look at how spices are selected, ground, checked, and prepared for packing.",
   },
 };
 
@@ -750,7 +686,7 @@ export const PAGE_META: Record<string, PageMeta> = {
   about: {
     title: "Our Heritage — Madhavji Masala",
     description:
-      "A legacy sculpted by saffron and soil. Discover the Madhavji Masala story — from a small grinding mill to one of Gujarat's most trusted spice houses.",
+      "Learn about Madhavji Masala's values, process, and family enterprise, with the complete historical timeline available on our Legacy page.",
     keywords: ["about Madhavji Masala", "spice heritage", "Gujarat spice company"],
   },
   certifications: {

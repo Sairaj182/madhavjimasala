@@ -48,9 +48,9 @@ export default function CtaBanner() {
                   <span className="text-brand-gold">aromatics.</span>
                 </h2>
                 <p className="mt-6 max-w-md text-base leading-relaxed text-white/55">
-                  Whether you&apos;re a restaurant chain, a retail brand, or a global
-                  exporter - Madhavji Masala offers bulk supply, custom blending,
-                  and white-label solutions tailored to your needs.
+                  Whether you&apos;re buying for a shop, restaurant, institution, or
+                  community event, contact Madhavji Masala to discuss available
+                  products, pack sizes, and bulk requirements.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-4">
                   <Link
@@ -70,22 +70,12 @@ export default function CtaBanner() {
                   </Link>
                 </div>
 
-                {/* Stats with gold dividers */}
-                <div className="mt-10 flex flex-wrap items-center gap-4 sm:gap-0">
-                  <div className="sm:pr-8">
-                    <p className="text-2xl sm:text-3xl font-bold font-heading text-brand-gold">93+</p>
-                    <p className="mt-1 text-xs text-white/45 font-medium tracking-wide">Years Legacy</p>
-                  </div>
-                  <div className="hidden sm:block h-10 w-px bg-gradient-to-b from-transparent via-brand-gold/30 to-transparent" />
-                  <div className="sm:px-8">
-                    <p className="text-2xl sm:text-3xl font-bold font-heading text-brand-gold">10+</p>
-                    <p className="mt-1 text-xs text-white/45 font-medium tracking-wide">Products</p>
-                  </div>
-                  <div className="hidden sm:block h-10 w-px bg-gradient-to-b from-transparent via-brand-gold/30 to-transparent" />
-                  <div className="sm:pl-8">
-                    <p className="text-2xl sm:text-3xl font-bold font-heading text-brand-gold">15+</p>
-                    <p className="mt-1 text-xs text-white/45 font-medium tracking-wide">Cities</p>
-                  </div>
+                <div className="mt-10 flex flex-wrap gap-2" aria-label="Business facts">
+                  {["Family enterprise since 1930", "Based in Vadodara", "Bulk enquiries welcome"].map((fact) => (
+                    <span key={fact} className="rounded-full border border-brand-gold/25 bg-white/5 px-4 py-2 text-xs font-semibold tracking-wide text-brand-gold">
+                      {fact}
+                    </span>
+                  ))}
                 </div>
               </div>
 
@@ -93,7 +83,7 @@ export default function CtaBanner() {
               <div className="relative hidden lg:block">
                 <Image
                   src="/images/madhavjimasala_logo_rct.png"
-                  alt="Madhavji Masala warehouse facility"
+                  alt="Madhavji Masala brand mark"
                   fill
                   className="object-cover"
                   sizes="50vw"

@@ -20,7 +20,7 @@ export default function CartPage() {
           You need to be signed in to view your cart and checkout.
         </p>
         <Link
-          href="/login"
+          href="/login?callbackUrl=%2Fcart"
           className="rounded-full bg-brand-maroon px-8 py-3 text-sm font-semibold text-white hover:bg-brand-maroon-dark transition-colors"
         >
           Sign In

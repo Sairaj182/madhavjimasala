@@ -19,7 +19,9 @@ export default function NewsletterSection() {
             {/* Email Form */}
             <div className="mt-8 flex max-w-md flex-col gap-3 sm:flex-row">
               <input
+                id="newsletter-email"
                 type="email"
+                aria-label="Email address for newsletter"
                 placeholder="Your email address"
                 className="w-full sm:flex-1 rounded-full border border-brand-border bg-white px-5 py-3 text-sm text-brand-dark placeholder-brand-gray-light outline-none transition-all focus:border-brand-maroon focus:ring-2 focus:ring-brand-maroon/10"
               />
@@ -32,10 +34,10 @@ export default function NewsletterSection() {
           {/* Trust Badges */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {[
-              { icon: "leaf", title: "Ethically Sourced", desc: "Direct farm partnerships" },
-              { icon: "beaker", title: "Lab Tested", desc: "24-layer quality checks" },
-              { icon: "shield", title: "Artisanal Process", desc: "Traditional techniques" },
-              { icon: "globe", title: "Nationwide Shipping", desc: "Across India & 15+ countries" },
+              { icon: "leaf", title: "Careful Selection", desc: "Raw spices selected for quality" },
+              { icon: "beaker", title: "Quality Checks", desc: "Checks through production and packing" },
+              { icon: "shield", title: "Hygienic Handling", desc: "Clean, controlled processing" },
+              { icon: "globe", title: "Bulk Enquiries", desc: "Contact us for availability" },
             ].map((badge) => (
               <div
                 key={badge.title}
