@@ -29,6 +29,7 @@ model User {
   orders Order[]
   pushSubscriptions PushSubscription[]
   testimonials Testimonial[]
+  orderMessages OrderMessage[]
 
   Attendance Attendance[]
   Payroll    Payroll[]
@@ -46,8 +47,20 @@ model StoreSettings {
   generalStoreOrdersOpen    Boolean  @default(true)
   generalStorePickupOpen    Boolean  @default(true)
   generalStoreNotificationsOpen Boolean @default(true)
+  generalStoreChatOpen      Boolean  @default(false)
   generalStoreMaintenanceMessage String @default("General Store ordering is temporarily unavailable.")
   updatedAt                  DateTime @updatedAt
+}
+
+model RolePermission {
+  id        String   @id @default(cuid())
+  role      String
+  feature   String
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  @@unique([role, feature])
+  @@index([role])
 }
 
 model PushSubscription {
@@ -299,9 +312,23 @@ model Order {
   updatedAt DateTime @updatedAt
 
   items OrderItem[]
+  messages OrderMessage[]
 
   @@index([pickupSlotId, status])
   @@index([userId, createdAt])
+}
+
+model OrderMessage {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  message   String   @db.VarChar(1200)
+  createdAt DateTime @default(now())
+
+  @@index([orderId, createdAt])
+  @@index([senderId, createdAt])
 }
 
 model OrderItem {

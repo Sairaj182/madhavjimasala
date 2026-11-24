@@ -231,7 +231,7 @@ export default function Header() {
           </nav>
 
           {/* CTA + Mobile Toggle */}
-          <div className="flex shrink-0 items-center gap-2 sm:gap-4 2xl:gap-6">
+          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4 2xl:gap-6">
             <Link
               href="/cart"
               aria-label={`Shopping cart${cartItemCount > 0 ? `, ${cartItemCount} items` : ""}`}

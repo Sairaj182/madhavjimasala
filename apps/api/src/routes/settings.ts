@@ -1,8 +1,9 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { prisma } from "@repo/db";
-import { requireOwner } from "../middleware/auth";
-import { z } from "zod";
+import type { FastifyInstance } from "fastify";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import { timingSafeEqual } from "node:crypto";
+import { prisma } from "@repo/db";
+import { requireFeature } from "../middleware/auth";
+import { z } from "zod";
 import { env } from "../env";
 import { defaultGeneralStoreControls, getGeneralStoreControls } from "../lib/general-store-settings";
 
@@ -10,13 +11,17 @@ const STORE_SETTINGS_ID = "store";
 const CONTROL_PIN_HEADER = "x-general-store-control-pin";
 
 async function requireControlCenterPin(request: FastifyRequest, reply: FastifyReply) {
-  if (!env.GENERAL_STORE_CONTROL_PIN) return reply.status(503).send({ error: "General Store control PIN is not configured on the API" });
+  if (!env.GENERAL_STORE_CONTROL_PIN) {
+    return reply.status(503).send({ error: "General Store control PIN is not configured on the API." });
+  }
   const supplied = request.headers[CONTROL_PIN_HEADER];
   const value = Array.isArray(supplied) ? supplied[0] : supplied;
-  if (!value) return reply.status(401).send({ error: "Control centre PIN required" });
+  if (!value) return reply.status(401).send({ error: "Control centre PIN required." });
   const expected = Buffer.from(env.GENERAL_STORE_CONTROL_PIN, "utf8");
   const provided = Buffer.from(value, "utf8");
-  if (expected.length !== provided.length || !timingSafeEqual(expected, provided)) return reply.status(401).send({ error: "Invalid control centre PIN" });
+  if (expected.length !== provided.length || !timingSafeEqual(expected, provided)) {
+    return reply.status(401).send({ error: "Invalid control centre PIN." });
+  }
 }
 
 const updateStoreSettingsSchema = z.object({
@@ -28,6 +33,7 @@ const updateStoreSettingsSchema = z.object({
   generalStoreOrdersOpen: z.boolean().optional(),
   generalStorePickupOpen: z.boolean().optional(),
   generalStoreNotificationsOpen: z.boolean().optional(),
+  generalStoreChatOpen: z.boolean().optional(),
   generalStoreMaintenanceMessage: z.string().trim().min(1).max(240).optional(),
 });
 
@@ -42,19 +48,30 @@ async function getStoreSettings() {
 }
 
 export async function settingsRoutes(app: FastifyInstance) {
-  app.get("/store", { preHandler: [requireOwner, requireControlCenterPin] }, async (_request, reply) => {
+  app.get("/storefront", async (_request, reply) => {
+    reply.header("Cache-Control", "private, no-store");
+    const controls = await getGeneralStoreControls();
+    return reply.send({ generalStoreChatOpen: controls.generalStoreChatOpen });
+  });
+
+  app.get("/inventory", { preHandler: requireFeature("products.view") }, async (_request, reply) => {
+    const settings = await getStoreSettings();
+    return reply.send({ inventoryManagementEnabled: settings.inventoryManagementEnabled });
+  });
+
+  app.get("/store", { preHandler: [requireFeature("store.controls"), requireControlCenterPin] }, async (_request, reply) => {
     const settings = await getStoreSettings();
     return reply.send(settings);
   });
 
-  app.patch("/store", { preHandler: [requireOwner, requireControlCenterPin] }, async (request, reply) => {
+  app.patch("/store", { preHandler: [requireFeature("store.controls"), requireControlCenterPin] }, async (request, reply) => {
     try {
       const data = updateStoreSettingsSchema.parse(request.body);
       const current = await getStoreSettings();
       const next = { ...defaultGeneralStoreControls, ...current, ...data };
       await prisma.$executeRaw`
-        INSERT INTO "StoreSettings" ("id", "inventoryManagementEnabled", "generalStoreEnabled", "generalStoreCatalogueOpen", "generalStoreCartOpen", "generalStoreCheckoutOpen", "generalStoreOrdersOpen", "generalStorePickupOpen", "generalStoreNotificationsOpen", "generalStoreMaintenanceMessage", "updatedAt")
-        VALUES (${STORE_SETTINGS_ID}, ${next.inventoryManagementEnabled}, ${next.generalStoreEnabled}, ${next.generalStoreCatalogueOpen}, ${next.generalStoreCartOpen}, ${next.generalStoreCheckoutOpen}, ${next.generalStoreOrdersOpen}, ${next.generalStorePickupOpen}, ${next.generalStoreNotificationsOpen}, ${next.generalStoreMaintenanceMessage}, NOW())
+        INSERT INTO "StoreSettings" ("id", "inventoryManagementEnabled", "generalStoreEnabled", "generalStoreCatalogueOpen", "generalStoreCartOpen", "generalStoreCheckoutOpen", "generalStoreOrdersOpen", "generalStorePickupOpen", "generalStoreNotificationsOpen", "generalStoreChatOpen", "generalStoreMaintenanceMessage", "updatedAt")
+        VALUES (${STORE_SETTINGS_ID}, ${next.inventoryManagementEnabled}, ${next.generalStoreEnabled}, ${next.generalStoreCatalogueOpen}, ${next.generalStoreCartOpen}, ${next.generalStoreCheckoutOpen}, ${next.generalStoreOrdersOpen}, ${next.generalStorePickupOpen}, ${next.generalStoreNotificationsOpen}, ${next.generalStoreChatOpen}, ${next.generalStoreMaintenanceMessage}, NOW())
         ON CONFLICT ("id") DO UPDATE SET
           "inventoryManagementEnabled" = EXCLUDED."inventoryManagementEnabled",
           "generalStoreEnabled" = EXCLUDED."generalStoreEnabled",
@@ -64,6 +81,7 @@ export async function settingsRoutes(app: FastifyInstance) {
           "generalStoreOrdersOpen" = EXCLUDED."generalStoreOrdersOpen",
           "generalStorePickupOpen" = EXCLUDED."generalStorePickupOpen",
           "generalStoreNotificationsOpen" = EXCLUDED."generalStoreNotificationsOpen",
+          "generalStoreChatOpen" = EXCLUDED."generalStoreChatOpen",
           "generalStoreMaintenanceMessage" = EXCLUDED."generalStoreMaintenanceMessage",
           "updatedAt" = NOW()
       `;

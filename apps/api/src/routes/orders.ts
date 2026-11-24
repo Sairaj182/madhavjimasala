@@ -1,10 +1,11 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "@repo/db";
 import { Prisma } from "@prisma/client";
-import { isAdminRole, isOwnerRole, isStaffRole, requireAdmin, requireAuth, requireOwner } from "../middleware/auth";
+import { hasAnyRoleFeature, hasRoleFeature } from "../lib/role-permissions";
+import { isAdminRole, requireAuth, requireFeature } from "../middleware/auth";
 import { z } from "zod";
-import { randomInt } from "node:crypto";
-import { notifyUser } from "../lib/push";
+import { randomInt, randomUUID } from "node:crypto";
+import { notifyAdminNewOrder, notifyUser } from "../lib/push";
 import { quoteGeneralStoreSelection } from "../lib/general-store-pricing";
 import { getGeneralStoreControls } from "../lib/general-store-settings";
 import { checkoutHash, quoteCart, storeCartItems } from "../lib/store-cart";
@@ -56,6 +57,31 @@ const pickupCodeSchema = z.object({
   pickupCode: z.string().trim().regex(/^[A-Z0-9]{8}$/, "Pickup code must be 8 uppercase letters and numbers"),
 });
 
+const orderMessageSchema = z.object({ message: z.string().trim().min(1).max(1200) });
+type RawOrderMessage = { id: string; message: string; createdAt: Date; senderId: string; senderName: string; senderRole: string };
+
+function presentOrderMessage(message: RawOrderMessage) {
+  return { id: message.id, message: message.message, createdAt: message.createdAt, sender: { id: message.senderId, name: message.senderName, role: message.senderRole } };
+}
+
+async function latestMessageRoles(orderIds: string[]) {
+  if (!orderIds.length) return new Map<string, string>();
+  const rows = await prisma.$queryRaw<{ orderId: string; senderRole: string }[]>`
+    SELECT target."id" AS "orderId", latest."senderRole"
+    FROM "Order" AS target
+    CROSS JOIN LATERAL (
+      SELECT sender."role" AS "senderRole"
+      FROM "OrderMessage" AS message
+      INNER JOIN "user" AS sender ON sender."id" = message."senderId"
+      WHERE message."orderId" = target."id"
+      ORDER BY message."createdAt" DESC, message."id" DESC
+      LIMIT 1
+    ) AS latest
+    WHERE target."id" IN (${Prisma.join(orderIds)})
+  `;
+  return new Map(rows.map((row) => [row.orderId, row.senderRole]));
+}
+
 function generatePickupNumber() {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   const suffix = Array.from({ length: 6 }, () => alphabet[randomInt(0, alphabet.length)]).join("");
@@ -89,6 +115,67 @@ export async function orderRoutes(app: FastifyInstance) {
   app.addHook("onRequest", async (_request, reply) => { reply.header("Cache-Control", "private, no-store"); });
   app.addHook('preHandler', requireAuth);
 
+  async function visibleOrder(orderId: string, userId: string, role: string | undefined) {
+    const order = await prisma.order.findUnique({ where: { id: orderId }, select: { id: true, userId: true } });
+    return order && (order.userId === userId || isAdminRole(role)) ? order : null;
+  }
+
+  async function hasOrderBoardAccess(role: string | undefined) {
+    return hasAnyRoleFeature(role, ["orders.view", "orders.review", "orders.ready", "orders.status", "orders.messages"]);
+  }
+
+  async function canUseOrderChat(orderId: string, user: { id: string; role?: string }) {
+    const order = await visibleOrder(orderId, user.id, user.role);
+    if (!order) return { order: null, allowed: false };
+    const allowed = order.userId === user.id || await hasRoleFeature(user.role, "orders.messages");
+    return { order, allowed };
+  }
+
+  app.get("/:id/messages", async (request, reply) => {
+    if (!(await getGeneralStoreControls()).generalStoreChatOpen) return reply.code(503).send({ code: "ORDER_CHAT_DISABLED", error: "Order messaging is currently unavailable." });
+    const { id } = request.params as { id: string };
+    const user = (request as any).user as { id: string; role?: string };
+    const access = await canUseOrderChat(id, user);
+    if (!access.order) return reply.code(404).send({ error: "Order not found" });
+    if (!access.allowed) return reply.code(403).send({ error: "Your role does not have access to order chat." });
+
+    const messages = await prisma.$queryRaw<RawOrderMessage[]>`
+      SELECT message."id", message."message", message."createdAt",
+             sender."id" AS "senderId", sender."name" AS "senderName", sender."role" AS "senderRole"
+      FROM "OrderMessage" AS message
+      INNER JOIN "user" AS sender ON sender."id" = message."senderId"
+      WHERE message."orderId" = ${id}
+      ORDER BY message."createdAt" DESC, message."id" DESC
+      LIMIT 100
+    `;
+    return reply.send(messages.reverse().map(presentOrderMessage));
+  });
+
+  app.post("/:id/messages", { bodyLimit: 4096 }, async (request, reply) => {
+    if (!(await getGeneralStoreControls()).generalStoreChatOpen) return reply.code(503).send({ code: "ORDER_CHAT_DISABLED", error: "Order messaging is currently unavailable." });
+    const { id } = request.params as { id: string };
+    const user = (request as any).user as { id: string; name: string; role?: string };
+    const parsed = orderMessageSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: "Message must contain 1 to 1200 characters." });
+    const access = await canUseOrderChat(id, user);
+    if (!access.order) return reply.code(404).send({ error: "Order not found" });
+    if (!access.allowed) return reply.code(403).send({ error: "Your role does not have access to order chat." });
+
+    const [recentMessages] = await prisma.$queryRaw<{ count: bigint }[]>`
+      SELECT COUNT(*)::bigint AS count FROM "OrderMessage"
+      WHERE "senderId" = ${user.id} AND "createdAt" >= NOW() - INTERVAL '1 minute'
+    `;
+    if (recentMessages.count >= 10n) return reply.code(429).send({ error: "Please wait a moment before sending more messages." });
+
+    const messageId = randomUUID();
+    const createdAt = new Date();
+    await prisma.$executeRaw`
+      INSERT INTO "OrderMessage" ("id", "orderId", "senderId", "message", "createdAt")
+      VALUES (${messageId}, ${id}, ${user.id}, ${parsed.data.message}, ${createdAt})
+    `;
+    return reply.code(201).send({ id: messageId, message: parsed.data.message, createdAt, sender: { id: user.id, name: user.name, role: user.role ?? "user" } });
+  });
+
   // User: Get my orders
   app.get("/", async (request, reply) => {
     const controls = await getGeneralStoreControls();
@@ -102,7 +189,11 @@ export async function orderRoutes(app: FastifyInstance) {
         items: true
       }
     });
-    return reply.send(orders.map((order) => presentOrder(order, true)));
+    const latestRoles = controls.generalStoreChatOpen ? await latestMessageRoles(orders.map((order) => order.id)) : new Map<string, string>();
+    return reply.send(orders.map((order) => ({
+      ...presentOrder(order, true),
+      hasStoreReply: isAdminRole(latestRoles.get(order.id)),
+    })));
   });
 
   app.get("/:id/receipt", async (request, reply) => {
@@ -126,10 +217,13 @@ export async function orderRoutes(app: FastifyInstance) {
         items: true
       }
     });
-    if (!order || (order.userId !== userId && !isAdminRole((request as any).user.role))) {
+    const user = (request as any).user as { role?: string };
+    const isCustomerOrder = order?.userId === userId;
+    const canViewAdminOrder = isAdminRole(user.role) && await hasOrderBoardAccess(user.role);
+    if (!order || (!isCustomerOrder && !canViewAdminOrder)) {
       return reply.status(404).send({ error: "Order not found" });
     }
-    return reply.send(presentOrder(order, order.userId === userId || isOwnerRole((request as any).user.role)));
+    return reply.send(presentOrder(order, isCustomerOrder || await hasRoleFeature(user.role, "pickup.verify")));
   });
 
   // One completed order per reviewed cart. A new cart has a new revision, even for identical products.
@@ -216,8 +310,12 @@ export async function orderRoutes(app: FastifyInstance) {
         });
       }
       if (result.created) {
-        void notifyUser(userId, "Order received", "Your pickup order has been received.", "/orders")
-          .catch(() => request.log.warn("Could not send the order receipt notification"));
+        void Promise.allSettled([
+          notifyUser(userId, "Order received", "Your pickup order has been received.", "/orders"),
+          notifyAdminNewOrder(result.order.id, result.order.serialNumber),
+        ]).then((results) => {
+          if (results.some((item) => item.status === "rejected")) request.log.warn("Could not send one or more new-order notifications");
+        });
       }
       return reply.code(result.created ? 201 : 200).send(presentOrder(result.order, true));
     } catch (error) {
@@ -229,7 +327,11 @@ export async function orderRoutes(app: FastifyInstance) {
   });
 
   // Admin Routes
-  app.get("/all", { preHandler: requireAdmin }, async (request, reply) => {
+  app.get("/all", { preHandler: requireAuth }, async (request, reply) => {
+    const actor = (request as any).user as { role?: string };
+    if (!isAdminRole(actor.role) || !(await hasOrderBoardAccess(actor.role))) {
+      return reply.code(403).send({ error: "Your role does not have access to the order board." });
+    }
     const orders = await prisma.order.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
@@ -253,13 +355,16 @@ export async function orderRoutes(app: FastifyInstance) {
       select: { id: true, price: true, priceInPaise: true, packagingSizes: true, allowLooseQuantity: true, loosePricingRules: true },
     });
     const productsById = new Map(products.map((product) => [product.id, product]));
+    const chatOpen = (await getGeneralStoreControls()).generalStoreChatOpen;
+    const latestRoles = chatOpen ? await latestMessageRoles(orders.filter((order) => !["PICKED_UP", "CANCELLED"].includes(order.status)).map((order) => order.id)) : new Map<string, string>();
     return reply.send(orders.map((order) => ({
       ...order,
+      customerMessageNeedsReply: Boolean(latestRoles.has(order.id) && !isAdminRole(latestRoles.get(order.id))),
       items: order.items.map((item) => ({ ...item, product: item.productId ? productsById.get(item.productId) || null : null })),
     })));
   });
 
-  app.patch("/:id/confirm", { preHandler: requireAdmin }, async (request, reply) => {
+  app.patch("/:id/confirm", { preHandler: requireFeature("orders.review") }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const { items } = confirmOrderSchema.parse(request.body);
@@ -391,8 +496,9 @@ export async function orderRoutes(app: FastifyInstance) {
           : "Your order has been confirmed and is being prepared.",
         "/orders",
       ).catch(() => request.log.warn("Could not send the order review notification"));
+      const actor = (request as any).user as { role?: string };
       return reply.send({
-        ...presentOrder(updated, isOwnerRole((request as any).user.role)),
+        ...presentOrder(updated, await hasRoleFeature(actor.role, "pickup.verify")),
         items: updated.items.map((item) => ({ ...item, product: item.productId ? productsById.get(item.productId) || null : null })),
       });
     } catch (err: any) {
@@ -401,8 +507,12 @@ export async function orderRoutes(app: FastifyInstance) {
     }
   });
 
-  app.post("/lookup", { preHandler: requireOwner }, async (request, reply) => {
+  app.post("/lookup", { preHandler: requireAuth }, async (request, reply) => {
     try {
+      const actor = (request as any).user as { role?: string };
+      if (!(await hasAnyRoleFeature(actor.role, ["pickup.verify", "payments.record", "pickup.fulfill"]))) {
+        return reply.code(403).send({ error: "Your role cannot verify pickup or record payment." });
+      }
       const { pickupCode } = pickupCodeSchema.parse(request.body);
       const order = await prisma.order.findUnique({
         where: { pickupNumber: pickupCode.toUpperCase() },
@@ -423,13 +533,15 @@ export async function orderRoutes(app: FastifyInstance) {
     }
   });
 
-  app.patch("/:id/status", { preHandler: requireAdmin }, async (request, reply) => {
+  app.patch("/:id/status", { preHandler: requireAuth }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const { status } = updateOrderStatusSchema.parse(request.body);
-      if (isStaffRole((request as any).user.role) && status !== "READY_FOR_PICKUP") {
-        return reply.status(403).send({ error: "Staff can only mark reviewed orders ready for pickup" });
-      }
+      const actor = (request as any).user as { role?: string };
+      const allowedToUpdate = status === "READY_FOR_PICKUP"
+        ? await hasRoleFeature(actor.role, "orders.ready") || await hasRoleFeature(actor.role, "orders.status")
+        : await hasRoleFeature(actor.role, "orders.status");
+      if (!allowedToUpdate) return reply.code(403).send({ error: "Your role cannot make this order status change." });
       const currentOrder = await prisma.order.findUnique({ where: { id } });
       if (!currentOrder) {
         return reply.status(404).send({ error: "Order not found" });
@@ -456,7 +568,7 @@ export async function orderRoutes(app: FastifyInstance) {
       });
       void notifyUser(order.userId, "Order status updated", `Your order is now ${status.replaceAll("_", " ").toLowerCase()}.`, "/orders")
         .catch(() => request.log.warn("Could not send the order status notification"));
-      return reply.send(presentOrder(order, isOwnerRole((request as any).user.role)));
+      return reply.send(presentOrder(order, await hasRoleFeature(actor.role, "pickup.verify")));
     } catch (err: any) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
         return reply.code(409).send({ error: "The order changed. Refresh and try again." });
@@ -466,14 +578,21 @@ export async function orderRoutes(app: FastifyInstance) {
   });
 
   // Admin: verify the customer pickup code before recording payment or collection.
-  app.patch("/:id/fulfillment", { preHandler: requireOwner }, async (request, reply) => {
+  app.patch("/:id/fulfillment", { preHandler: requireAuth }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const { pickupCode, pickedUp, paymentPaid } = fulfillmentSchema.parse(request.body);
+      const actor = (request as any).user as { id: string; role?: string };
+      const canCompletePickup = await hasRoleFeature(actor.role, "pickup.fulfill");
+      if (pickedUp && !canCompletePickup) return reply.code(403).send({ error: "Your role cannot complete pickups." });
+      if (!paymentPaid && !pickedUp) return reply.code(400).send({ error: "Choose a permitted fulfillment action." });
       const order = await prisma.order.findUnique({ where: { id } });
 
       if (!order) {
         return reply.status(404).send({ error: "Order not found" });
+      }
+      if (paymentPaid && order.paymentStatus !== "PAID" && !(await hasRoleFeature(actor.role, "payments.record"))) {
+        return reply.code(403).send({ error: "Your role cannot record cash payments." });
       }
       if (order.pickupNumber !== pickupCode) {
         return reply.status(403).send({ error: "Pickup code does not match this order" });
@@ -490,10 +609,6 @@ export async function orderRoutes(app: FastifyInstance) {
       if (pickedUp && !paymentPaid && order.paymentStatus !== "PAID") {
         return reply.status(409).send({ error: "Payment must be recorded before pickup" });
       }
-      if (paymentPaid && !pickedUp && order.paymentStatus !== "PAID") {
-        return reply.status(409).send({ error: "Payment can only be recorded while completing pickup" });
-      }
-
       const updated = await prisma.order.update({
         where: { id, status: order.status, updatedAt: order.updatedAt },
         data: {
@@ -502,7 +617,7 @@ export async function orderRoutes(app: FastifyInstance) {
             ? {
                 status: "PICKED_UP",
                 pickedUpAt: new Date(),
-                pickedUpById: (request as any).user.id,
+              pickedUpById: actor.id,
               }
             : {}),
         },
@@ -525,7 +640,7 @@ export async function orderRoutes(app: FastifyInstance) {
     }
   });
 
-  app.post("/:id/verify-pickup", { preHandler: requireOwner }, async (request, reply) => {
+  app.post("/:id/verify-pickup", { preHandler: requireFeature("pickup.verify") }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const { pickupCode } = pickupCodeSchema.parse(request.body);

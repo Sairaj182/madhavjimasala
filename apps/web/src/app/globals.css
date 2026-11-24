@@ -163,7 +163,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 
-/* ── Logo Splash Screen (Keyframes Only) ───── */
+/* ── Splash Screen Background ───────────────── */
 
 .splash-particle {
   position: absolute;
@@ -192,20 +192,57 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-.splash-ring {
-  position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-  border: 2px solid rgba(212, 160, 23, 0.3);
-  animation: splash-ring-pulse 2s ease-in-out infinite;
-  pointer-events: none;
+.splash-wordmark {
+  color: #e8c547;
+  text-shadow: 0 2px 18px rgba(212, 160, 23, 0.3);
 }
 
-@keyframes splash-ring-pulse {
-  0%, 100% { transform: scale(1); opacity: 0.3; }
-  50% { transform: scale(1.08); opacity: 0.6; }
+.splash-letter {
+  display: inline-block;
+  color: transparent;
+  background: linear-gradient(180deg, #fff1a8 0%, #e8c547 48%, #b97908 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  opacity: 0;
 }
 
+.splash-date {
+  color: #f2d66b;
+  opacity: 0;
+  text-shadow: 0 2px 14px rgba(212, 160, 23, 0.22);
+}
+
+[data-splash-revealing="true"] .splash-letter {
+  animation: splash-letter-reveal 180ms ease-out both;
+}
+
+[data-splash-revealing="true"] .splash-date {
+  animation: splash-date-reveal 550ms ease-out both;
+}
+
+@keyframes splash-letter-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splash-date-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-splash-revealing="true"] .splash-letter,
+  [data-splash-revealing="true"] .splash-date {
+    animation: none;
+    opacity: 1;
+  }
+}
 
 /* ── Premium Utilities ─────────────────────── */
 

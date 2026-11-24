@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PushNotifications from "@/components/shared/PushNotifications";
+import OrderConversation from "@/components/shared/OrderConversation";
 import { formatPaise, formatRate, formatWeightGrams, formatWeightText } from "@/lib/general-store-display";
 import { STORE_API_URL, StoreApiError, storeResponse } from "@/lib/store-api";
 
@@ -46,6 +47,7 @@ type Order = {
   paymentStatus: string;
   totalInPaise: number;
   createdAt: string;
+  hasStoreReply?: boolean;
   pickupSlot: PickupSlot;
   items: OrderItem[];
 };
@@ -101,11 +103,13 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [orderView, setOrderView] = useState<"current" | "past">("current");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [loadedFor, setLoadedFor] = useState<string>();
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const [needsSignIn, setNeedsSignIn] = useState(false);
   const [copiedPickupNumber, setCopiedPickupNumber] = useState<string | null>(null);
+  const loadedForRef = useRef<string | undefined>(undefined);
 
   const copyPickupNumber = async (pickupNumber: string) => {
     try {
@@ -127,7 +131,9 @@ export default function OrdersPage() {
   useEffect(() => {
     if (!userId) return;
     const controller = new AbortController();
-    setLoading(true);
+    const initialLoad = loadedForRef.current !== userId;
+    if (initialLoad) setLoading(true);
+    else setRefreshing(true);
     setError("");
     setNeedsSignIn(false);
     async function loadOrders() {
@@ -145,13 +151,28 @@ export default function OrdersPage() {
       } finally {
         if (!controller.signal.aborted) {
           setLoadedFor(userId);
+          loadedForRef.current = userId;
           setLoading(false);
+          setRefreshing(false);
         }
       }
     }
     void loadOrders();
     return () => controller.abort();
   }, [userId, retry]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const refresh = () => {
+      if (document.visibilityState === "visible") setRetry((count) => count + 1);
+    };
+    const interval = window.setInterval(refresh, 30000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [userId]);
 
   if (sessionLoading || loading || !userId || loadedFor !== userId) {
     return (
@@ -194,6 +215,7 @@ export default function OrdersPage() {
           </div>
           <div className="flex flex-wrap items-end gap-4 sm:flex-nowrap">
             <PushNotifications />
+            <button type="button" onClick={() => setRetry((count) => count + 1)} disabled={refreshing} aria-label="Refresh order status" className="rounded-full border border-brand-border bg-white px-4 py-2 text-xs font-bold text-brand-maroon transition hover:border-brand-maroon disabled:opacity-50">{refreshing ? "Refreshing…" : "Refresh orders"}</button>
           <Link
             href="/general-store"
             className="text-sm font-bold text-brand-maroon hover:text-brand-gold transition-colors flex items-center gap-2"
@@ -304,6 +326,8 @@ export default function OrdersPage() {
                       <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(order.status)}`}>
                         {getStatusLabel(order.status)}
                       </span>
+                      {order.hasStoreReply && <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Store replied</span>}
+                      <button type="button" onClick={() => setRetry((count) => count + 1)} disabled={refreshing} aria-label={`Refresh status for order ORD${String(order.serialNumber).padStart(6, "0")}`} className="rounded-full border border-brand-border bg-white px-3 py-1 text-xs font-bold text-brand-maroon transition hover:border-brand-maroon disabled:opacity-50">{refreshing ? "Refreshing…" : "Refresh"}</button>
                       <Link href={`/checkout/success?orderId=${encodeURIComponent(order.id)}`} className="text-sm font-semibold text-brand-maroon underline">View receipt</Link>
                     </div>
                   </div>
@@ -383,6 +407,9 @@ export default function OrdersPage() {
                           </div>
                         </div>
                       </div>
+                    </div>
+                    <div className="mt-6">
+                      <OrderConversation orderId={order.id} viewerId={userId} />
                     </div>
                   </div>
                 </div>

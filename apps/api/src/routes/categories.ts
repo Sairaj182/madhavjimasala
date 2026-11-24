@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "@repo/db";
-import { requireOwner } from "../middleware/auth";
+import { requireFeature } from "../middleware/auth";
 import { z } from "zod";
 
 const createCategorySchema = z.object({
@@ -17,7 +17,7 @@ export async function categoryRoutes(app: FastifyInstance) {
   });
 
   // Admin Routes
-  app.post("/", { preHandler: requireOwner }, async (request, reply) => {
+  app.post("/", { preHandler: requireFeature("categories.manage") }, async (request, reply) => {
     try {
       const data = createCategorySchema.parse(request.body);
       const category = await prisma.category.create({ data });
@@ -27,7 +27,7 @@ export async function categoryRoutes(app: FastifyInstance) {
     }
   });
 
-  app.delete("/:id", { preHandler: requireOwner }, async (request, reply) => {
+  app.delete("/:id", { preHandler: requireFeature("categories.manage") }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       await prisma.category.delete({ where: { id } });

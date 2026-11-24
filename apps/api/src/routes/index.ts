@@ -11,6 +11,7 @@ import { pushRoutes } from './push'
 import { testimonialRoutes } from './testimonials'
 import { adminUserRoutes } from './admin-users'
 import { analyticsRoutes } from './analytics'
+import { rolePermissionRoutes } from './role-permissions'
 
 export function registerRoutes(app: FastifyInstance) {
     app.register(healthRoutes, { prefix: '/api' })
@@ -25,4 +26,5 @@ export function registerRoutes(app: FastifyInstance) {
     app.register(testimonialRoutes, { prefix: '/api/testimonials' })
     app.register(adminUserRoutes, { prefix: '/api/admin/users' })
     app.register(analyticsRoutes, { prefix: '/api/admin/analytics' })
+    app.register(rolePermissionRoutes, { prefix: '/api/admin/permissions' })
 }

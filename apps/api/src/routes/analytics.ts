@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "@repo/db";
 import { z } from "zod";
-import { requireOwner } from "../middleware/auth";
+import { requireFeature } from "../middleware/auth";
 
 const querySchema = z.object({ days: z.coerce.number().int().refine((value) => [7, 30, 90].includes(value)).default(30) });
 type DailyRow = { day: Date; orders: bigint | number; paidPaise: bigint | number };
@@ -9,7 +9,7 @@ type DailyRow = { day: Date; orders: bigint | number; paidPaise: bigint | number
 export async function analyticsRoutes(app: FastifyInstance) {
   app.addHook("onRequest", async (_request, reply) => { reply.header("Cache-Control", "private, no-store"); });
 
-  app.get("/", { preHandler: requireOwner }, async (request, reply) => {
+  app.get("/", { preHandler: requireFeature("analytics.view") }, async (request, reply) => {
     const parsed = querySchema.safeParse(request.query);
     if (!parsed.success) return reply.code(400).send({ error: "Choose 7, 30, or 90 days" });
 

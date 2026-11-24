@@ -7,7 +7,10 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { SITE_INFO } from "@/lib/constants";
-import { isBackofficeRole, isOwnerRole, isStaffRole } from "@/lib/admin-roles";
+import { isBackofficeRole } from "@/lib/admin-roles";
+import PushNotifications from "@/components/shared/PushNotifications";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const NAV_FEATURE: Record<string, string> = { Dashboard: "dashboard.view", Products: "products.view", "General Store": "products.view", Categories: "categories.manage", Orders: "orders.view", Analytics: "analytics.view", "Admin Guide": "dashboard.view", Team: "team.manage", Comments: "testimonials.manage", "Time Slots": "pickup.slots.manage", Permissions: "role_permissions.manage" };
 
 const ADMIN_NAV = [
   { name: "Dashboard", href: "/admin", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
@@ -20,28 +23,59 @@ const ADMIN_NAV = [
   { name: "Team", href: "/admin/users", icon: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2m8-8a4 4 0 100-8 4 4 0 000 8zm6-3a3 3 0 110-6m4 17v-2a4 4 0 00-3-3.87" },
   { name: "Comments", href: "/admin/testimonials", icon: "M8 10h8m-8 4h5M5 4h14a2 2 0 012 2v10a2 2 0 01-2 2H9l-4 3v-3a2 2 0 01-2-2V6a2 2 0 012-2z" },
   { name: "Time Slots", href: "/admin/timeslots", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
+  { name: "Permissions", href: "/admin/permissions", icon: "M12 11c1.1 0 2-.9 2-2V7a2 2 0 00-4 0v2c0 1.1.9 2 2 2zm-6 0h12a2 2 0 012 2v7H4v-7a2 2 0 012-2z" },
 ];
+
+function canAccessOrderTools(permissions: Record<string, boolean>) {
+  return ["orders.view", "orders.review", "orders.ready", "orders.status", "orders.messages", "pickup.verify", "pickup.fulfill", "payments.record"].some((feature) => permissions[feature] === true);
+}
+
+function canManageRolePermissions(permissions: Record<string, boolean>) {
+  return permissions["role_permissions.manage"] === true;
+}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, isPending } = authClient.useSession();
+  const sessionUser = session?.user;
   const [authorized, setAuthorized] = useState(false);
+  const [permissionData, setPermissionData] = useState<{ permissions: Record<string, boolean>; superAdmin: boolean } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const owner = isOwnerRole(session?.user.role);
-  const staff = isStaffRole(session?.user.role);
+  const isControlPanel = pathname.startsWith("/admin/settings");
 
   useEffect(() => {
-    if (!isPending) {
-      if (!session || !isBackofficeRole(session.user.role)) {
-        router.push("/");
-      } else if (staff && ["/admin/settings", "/admin/users", "/admin/categories", "/admin/timeslots", "/admin/testimonials", "/admin/analytics"].some((path) => pathname.startsWith(path))) {
-        router.push("/admin");
-      } else {
-        setAuthorized(true);
-      }
+    if (isPending) return;
+    if (!sessionUser || !isBackofficeRole(sessionUser.role)) { router.replace("/"); return; }
+    let cancelled = false;
+    fetch(`${API_URL}/admin/permissions/me`, { credentials: "include", cache: "no-store" }).then(async (response) => {
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.error || "Unable to load admin access.");
+      return data as { permissions: Record<string, boolean>; superAdmin: boolean };
+    }).then((data) => { if (!cancelled) setPermissionData(data); }).catch(() => { if (!cancelled) router.replace("/"); });
+    return () => { cancelled = true; };
+  }, [sessionUser, isPending, router]);
+
+  useEffect(() => {
+    if (!permissionData) return;
+    const item = ADMIN_NAV.find((entry) => entry.href !== "/admin" && pathname.startsWith(entry.href));
+    const feature = pathname.startsWith("/admin/settings") ? "store.controls" : item ? NAV_FEATURE[item.name] : pathname === "/admin" ? "dashboard.view" : undefined;
+    const allowed = pathname.startsWith("/admin/permissions")
+      ? canManageRolePermissions(permissionData.permissions)
+      : pathname.startsWith("/admin/orders")
+        ? canAccessOrderTools(permissionData.permissions)
+        : !feature || permissionData.permissions[feature] === true;
+    if (allowed) setAuthorized(true);
+    else {
+      setAuthorized(false);
+      const fallback = ADMIN_NAV.find((entry) => entry.href !== "/admin" && (entry.name === "Orders"
+        ? canAccessOrderTools(permissionData.permissions)
+        : entry.name === "Permissions"
+          ? canManageRolePermissions(permissionData.permissions)
+          : permissionData.permissions[NAV_FEATURE[entry.name]] === true));
+      router.replace(fallback?.href || "/");
     }
-  }, [session, isPending, router, pathname, staff]);
+  }, [permissionData, pathname, router]);
 
   if (!authorized) {
     return (
@@ -52,7 +86,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="-mt-16 min-h-screen bg-gray-50 flex lg:-mt-20">
+    <div className={`-mt-16 flex min-h-screen lg:-mt-20 ${isControlPanel ? "bg-[#070b11]" : "bg-gray-50"}`}>
       {sidebarOpen && <button type="button" aria-label="Close admin navigation" onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-30 bg-gray-900/30" />}
       {/* Sidebar drawer */}
       <aside className={`${sidebarOpen ? "flex" : "hidden"} fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 flex-col shadow-xl`}>
@@ -69,7 +103,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         
         <nav className="flex-1 px-4 py-6 space-y-2">
-          {[...ADMIN_NAV.filter((item) => owner || ["Dashboard", "Products", "General Store", "Orders", "Admin Guide"].includes(item.name)), ...(owner
+          {[...ADMIN_NAV.filter((item) => item.name === "Permissions" ? canManageRolePermissions(permissionData?.permissions || {}) : item.name === "Orders" ? canAccessOrderTools(permissionData?.permissions || {}) : permissionData?.permissions[NAV_FEATURE[item.name]] === true), ...(permissionData?.permissions["store.controls"]
             ? [{ name: "Settings", href: "/admin/settings", icon: "M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM19.4 15a1.7 1.7 0 00.3 1.9l.1.1-1.8 1.8-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6v.2h-2.5V20a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1-1.8-1.8.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.6-1H6v-2.5h.2a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1 1.8-1.8.1.1a1.7 1.7 0 001.9.3 1.7 1.7 0 001-1.6V5h2.5v.2a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1 1.8 1.8-.1.1a1.7 1.7 0 00-.3 1.9 1.7 1.7 0 001.6 1h.2v2.5h-.2a1.7 1.7 0 00-1.6 1z" }] : [])].map((item) => {
             const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/admin");
             return (
@@ -102,24 +136,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+      <main className={`flex h-screen flex-1 flex-col overflow-hidden ${isControlPanel ? "bg-[#070b11]" : ""}`}>
         <header className="h-16 shrink-0 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => setSidebarOpen(true)} aria-label="Open admin navigation" className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:border-brand-maroon hover:text-brand-maroon">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
-            <span className="font-bold text-brand-dark">Admin Portal</span>
+            <Link href="/" className="group flex min-w-0 items-center">
+              <div className="relative h-10 w-10 shrink-0 transition-transform duration-300 group-hover:scale-105">
+                <Image src="/images/madhavjimasala_logo_tbg.png" alt={SITE_INFO.logoAlt} fill className="object-contain drop-shadow-sm" priority />
+              </div>
+              <div className="mx-3 hidden h-8 w-px bg-gradient-to-b from-transparent via-brand-gold to-transparent sm:block" />
+              <div className="hidden min-w-0 flex-col sm:flex">
+                <span className="truncate font-heading text-base font-bold leading-tight tracking-wide text-[var(--color-brand-name)]">{SITE_INFO.name}</span>
+                <span className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.24em] text-brand-gold">Admin Portal</span>
+              </div>
+            </Link>
           </div>
-          <span className="text-xs text-gray-500">{session?.user.name || "Admin"}</span>
+          <div className="flex items-center gap-2 sm:gap-4"><PushNotifications adminMode /><span className="hidden text-xs text-gray-500 sm:inline">{session?.user.name || "Admin"}</span></div>
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-auto p-6 md:p-8">
+        <div className={`flex-1 overflow-auto ${isControlPanel ? "bg-[radial-gradient(circle_at_50%_0%,#17202d_0%,#0b1119_34%,#070b11_72%)] p-4 md:p-6" : "p-6 md:p-8"}`}>
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="max-w-6xl mx-auto"
+            className={`mx-auto ${isControlPanel ? "max-w-[1480px]" : "max-w-6xl"}`}
           >
             {children}
           </motion.div>

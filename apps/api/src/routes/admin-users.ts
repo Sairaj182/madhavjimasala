@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { prisma } from "@repo/db";
 import { auth } from "@repo/auth";
-import { isOwnerRole, isStaffRole, isSuperAdminRole, requireOwner } from "../middleware/auth";
+import { isStaffRole, isSuperAdminRole, requireFeature } from "../middleware/auth";
 import { z } from "zod";
 
 const managedRoles = ["STAFF", "STORE_OWNER"] as const;
@@ -46,11 +46,11 @@ function canManageTarget(actorRole: string | undefined, targetRole: string, targ
   if (isSuperAdminRole(actorRole)) {
     return panelRoles.includes(targetRole) && targetRole !== "SUPER_ADMIN" && (!nextRole || managedRoles.includes(nextRole as typeof managedRoles[number]));
   }
-  return isOwnerRole(actorRole) && isStaffRole(targetRole) && (!nextRole || nextRole === "STAFF");
+  return isStaffRole(targetRole) && (!nextRole || nextRole === "STAFF");
 }
 
 export async function adminUserRoutes(app: FastifyInstance) {
-  app.addHook("preHandler", requireOwner);
+  app.addHook("preHandler", requireFeature("team.manage"));
 
   app.get("/", async (_request, reply) => {
     const users = await prisma.user.findMany({
