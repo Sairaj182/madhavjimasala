@@ -22,6 +22,7 @@ async function inventoryManagementEnabled() {
 function hideInventory<T extends { stockQuantity?: unknown }>(product: T, enabled: boolean) {
   if (enabled) return product;
   const { stockQuantity: _stockQuantity, ...withoutInventory } = product;
+  void _stockQuantity;
   return withoutInventory;
 }
 
@@ -111,18 +112,34 @@ function validatePreferredSelection(selection: z.infer<typeof preferredSelection
 }
 
 export async function productRoutes(app: FastifyInstance) {
+  const loadGeneralCatalogue = async () => prisma.product.findMany({
+    where: { isGeneralStore: true, isActive: true },
+    include: { categoryDetails: true },
+  });
+  let catalogueCache: { expiresAt: number; products: ReturnType<typeof loadGeneralCatalogue> } | undefined;
+
+  function generalCatalogue() {
+    if (catalogueCache && catalogueCache.expiresAt > Date.now()) return catalogueCache.products;
+    const products = loadGeneralCatalogue().catch((error: unknown) => {
+      if (catalogueCache?.products === products) catalogueCache = undefined;
+      throw error;
+    });
+    catalogueCache = { expiresAt: Date.now() + 15_000, products };
+    return products;
+  }
+
   // Public Routes
   app.get("/", async (request, reply) => {
     const { kind } = request.query as { kind?: string };
     if (kind === "GENERAL_STORE") {
       const controls = await getGeneralStoreControls();
       if (!controls.generalStoreEnabled || !controls.generalStoreCatalogueOpen) return reply.status(503).send({ error: controls.generalStoreMaintenanceMessage });
+      const [products, inventoryEnabled] = await Promise.all([generalCatalogue(), inventoryManagementEnabled()]);
+      return reply.send(products.map((product) => hideInventory(product, inventoryEnabled)));
     }
     const inventoryEnabled = await inventoryManagementEnabled();
     const products = await prisma.product.findMany({
-      where: kind === "GENERAL_STORE"
-        ? { isGeneralStore: true, isActive: true }
-        : { isGeneralStore: false, isActive: true },
+      where: { isGeneralStore: false, isActive: true },
       include: { categoryDetails: true }
     });
     return reply.send(products.map((product) => hideInventory(product, inventoryEnabled)));
@@ -186,6 +203,7 @@ export async function productRoutes(app: FastifyInstance) {
           isGeneralStore: productData.isGeneralStore ?? false,
         },
       });
+      catalogueCache = undefined;
       return reply.status(201).send(product);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -238,6 +256,7 @@ export async function productRoutes(app: FastifyInstance) {
         throw new Error("Cloudinary is not configured");
       }
       const updated = await prisma.product.update({ where: { id }, data: { images: [...images, url] } });
+      catalogueCache = undefined;
       return reply.status(201).send({ url, images: updated.images });
     } catch (err: any) {
       return reply.status(400).send({ error: err.message || "Unable to upload image" });
@@ -265,6 +284,7 @@ export async function productRoutes(app: FastifyInstance) {
         prisma.productImageAsset.delete({ where: { id: asset.id } }),
         prisma.product.update({ where: { id }, data: { images } }),
       ]);
+      catalogueCache = undefined;
       return reply.send({ images });
     } catch (err: any) {
       return reply.status(400).send({ error: err.message || "Unable to delete image" });
@@ -299,6 +319,7 @@ export async function productRoutes(app: FastifyInstance) {
           ...(data.packagingSizes !== undefined ? { packagingSizes: packagingSizes as Prisma.InputJsonValue } : {}),
         },
       });
+      catalogueCache = undefined;
       return reply.send(product);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -324,6 +345,7 @@ export async function productRoutes(app: FastifyInstance) {
         where: { id },
         data: updateData
       });
+      catalogueCache = undefined;
       return reply.send(product);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -335,6 +357,7 @@ export async function productRoutes(app: FastifyInstance) {
       const { id } = request.params as { id: string };
       // Products are archived so historical cart/order lines keep their identity.
       const product = await prisma.product.update({ where: { id }, data: { isActive: false } });
+      catalogueCache = undefined;
       return reply.send(product);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });

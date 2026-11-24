@@ -4,12 +4,9 @@ import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
-import Toast from "@/components/shared/Toast";
 import PushNotifications from "@/components/shared/PushNotifications";
-import { formatRate, formatWeightGrams, formatWeightText } from "@/lib/general-store-display";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { formatPaise, formatRate, formatWeightGrams, formatWeightText } from "@/lib/general-store-display";
+import { STORE_API_URL, StoreApiError, storeResponse } from "@/lib/store-api";
 
 type OrderItem = {
   id: string;
@@ -87,7 +84,7 @@ function originalOrderText(item: OrderItem) {
 
 function storeFulfilmentText(item: OrderItem) {
   if (item.available === false) return "Currently unavailable";
-  if (item.selectionType === "LOOSE") {
+  if (item.pricingUnit === "GRAM" || item.pricingUnit === "KILOGRAM" || (!item.pricingUnit && item.selectionType === "LOOSE")) {
     return `Loose ${formatWeightGrams(item.acceptedWeightGrams || item.requestedWeightGrams)} · Qty: ${item.quantity}`;
   }
   return `${item.acceptedPackingLabel || item.packingLabel || "Default packing"}${item.acceptedPackingWeight || item.packingWeight ? ` · ${formatWeightText(item.acceptedPackingWeight || item.packingWeight)}` : ""} · Qty: ${item.quantity}`;
@@ -104,8 +101,10 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [orderView, setOrderView] = useState<"current" | "past">("current");
   const [loading, setLoading] = useState(true);
+  const [loadedFor, setLoadedFor] = useState<string>();
   const [error, setError] = useState("");
-  const [toastVisible, setToastVisible] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const [needsSignIn, setNeedsSignIn] = useState(false);
   const [copiedPickupNumber, setCopiedPickupNumber] = useState<string | null>(null);
 
   const copyPickupNumber = async (pickupNumber: string) => {
@@ -119,45 +118,42 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("orderPlaced") !== "1") return;
-
-    setToastVisible(true);
-    window.history.replaceState({}, "", "/orders");
-  }, []);
-
-  useEffect(() => {
     if (!sessionLoading && !session?.user) {
       router.push("/login?callbackUrl=/orders");
     }
   }, [session, sessionLoading, router]);
 
+  const userId = session?.user.id;
   useEffect(() => {
-    if (!session?.user) return;
-
-    const fetchOrders = async () => {
+    if (!userId) return;
+    const controller = new AbortController();
+    setLoading(true);
+    setError("");
+    setNeedsSignIn(false);
+    async function loadOrders() {
       try {
-        const res = await fetch(`${API_URL}/orders`, {
-          credentials: "include",
+        const response = await fetch(`${STORE_API_URL}/orders`, {
+          credentials: "include", cache: "no-store", signal: controller.signal,
         });
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch orders");
-        }
-
-        const data = await res.json();
-        setOrders(data);
-      } catch (err: any) {
-        setError(err.message || "An error occurred");
+        const data = await storeResponse<Order[]>(response, "Could not load your orders.");
+        if (!controller.signal.aborted) setOrders(data);
+      } catch (failure) {
+        if (controller.signal.aborted) return;
+        const expired = failure instanceof StoreApiError && failure.status === 401;
+        setNeedsSignIn(expired);
+        setError(expired ? "Sign in again to see your orders." : failure instanceof StoreApiError ? failure.message : "Could not load your orders.");
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoadedFor(userId);
+          setLoading(false);
+        }
       }
-    };
+    }
+    void loadOrders();
+    return () => controller.abort();
+  }, [userId, retry]);
 
-    fetchOrders();
-  }, [session]);
-
-  if (sessionLoading || loading) {
+  if (sessionLoading || loading || !userId || loadedFor !== userId) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-brand-gold border-t-brand-maroon rounded-full animate-spin" />
@@ -169,14 +165,11 @@ export default function OrdersPage() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-2">Oops!</h2>
-          <p className="text-brand-gray">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-6 py-2 bg-brand-maroon text-white rounded-full hover:bg-brand-maroon-dark transition-colors"
-          >
-            Try Again
-          </button>
+          <h1 className="text-2xl font-bold text-brand-dark mb-2">My Orders</h1>
+          <p role="alert" className="text-brand-gray">{error}</p>
+          {needsSignIn
+            ? <Link href="/login?callbackUrl=%2Forders" className="mt-4 inline-block font-semibold text-brand-maroon underline">Sign In</Link>
+            : <button type="button" onClick={() => setRetry((count) => count + 1)} className="mt-4 rounded-full bg-brand-maroon px-6 py-2 text-white">Try Again</button>}
         </div>
       </div>
     );
@@ -192,12 +185,6 @@ export default function OrdersPage() {
 
   return (
     <>
-      {toastVisible && (
-        <Toast
-          message="Order placed successfully!"
-          onClose={() => setToastVisible(false)}
-        />
-      )}
       <div className="bg-brand-cream/30 min-h-screen py-12">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
@@ -276,7 +263,7 @@ export default function OrdersPage() {
           <div className="space-y-6">
             {visibleOrders.map((order) => {
               const pickupDate = new Date(order.pickupSlot.date).toLocaleDateString('en-IN', {
-                weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+                weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: "Asia/Kolkata"
               });
               const originalQuantity = order.items.reduce((sum, item) => sum + (item.requestedQuantity ?? item.quantity), 0);
               const fulfilledQuantity = order.items.reduce((sum, item) => sum + (item.available === false ? 0 : item.quantity), 0);
@@ -309,14 +296,15 @@ export default function OrdersPage() {
                       </div>
                       <div>
                         <p className="text-xs font-medium text-brand-gray uppercase tracking-wider">Total</p>
-                        <p className="text-sm font-medium text-brand-dark">₹{order.totalInPaise / 100}</p>
+                        <p className="text-sm font-medium text-brand-dark">{formatPaise(order.totalInPaise)}</p>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(order.status)}`}>
                         {getStatusLabel(order.status)}
                       </span>
+                      <Link href={`/checkout/success?orderId=${encodeURIComponent(order.id)}`} className="text-sm font-semibold text-brand-maroon underline">View receipt</Link>
                     </div>
                   </div>
 
@@ -339,12 +327,12 @@ export default function OrdersPage() {
                                   <p className="text-sm font-medium text-brand-dark">{item.productName}</p>
                                   <div className="mt-1 space-y-1 text-xs">
                                     <p className="text-brand-gray"><span className="font-semibold text-brand-dark">Original order:</span> {originalOrderText(item)}</p>
-                                    {hasStoreReview && <p className={fulfilmentChanged(item) ? "text-brand-maroon" : "text-green-700"}><span className="font-semibold">Store fulfilment:</span> {storeFulfilmentText(item)}{item.available !== false && <> · {formatRate(item.unitPriceInPaise, item.selectionType === "LOOSE" ? (item.pricingUnit || "KILOGRAM") : "PACK")}</>}</p>}
+                                    {hasStoreReview && <p className={fulfilmentChanged(item) ? "text-brand-maroon" : "text-green-700"}><span className="font-semibold">Store fulfilment:</span> {storeFulfilmentText(item)}{item.available !== false && <> · {formatRate(item.unitPriceInPaise, item.pricingUnit ?? (item.selectionType === "LOOSE" ? "KILOGRAM" : "PACK"))}</>}</p>}
                                   </div>
                                   {hasStoreReview && item.fulfillmentNote && <p className="mt-1 text-xs text-brand-maroon">Note from store: {item.fulfillmentNote}</p>}
                                 </div>
                               </div>
-                              <p className="text-sm font-medium text-brand-dark">₹{item.totalPriceInPaise / 100}</p>
+                              <p className="text-sm font-medium text-brand-dark">{formatPaise(item.totalPriceInPaise)}</p>
                             </li>
                           ))}
                         </ul>

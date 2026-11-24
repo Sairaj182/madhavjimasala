@@ -15,6 +15,7 @@ const ADMIN_NAV = [
   { name: "General Store", href: "/admin/general-store", icon: "M3 3h18v18H3zM7 7h10M7 12h10M7 17h6" },
   { name: "Categories", href: "/admin/categories", icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" },
   { name: "Orders", href: "/admin/orders", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
+  { name: "Analytics", href: "/admin/analytics", icon: "M4 19V5m0 14h16M8 15v-3m4 3V8m4 7V5m4 10V9" },
   { name: "Admin Guide", href: "/admin/guide", icon: "M4 5a2 2 0 012-2h8a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm4 2h4m-4 4h4m-4 4h2" },
   { name: "Team", href: "/admin/users", icon: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2m8-8a4 4 0 100-8 4 4 0 000 8zm6-3a3 3 0 110-6m4 17v-2a4 4 0 00-3-3.87" },
   { name: "Comments", href: "/admin/testimonials", icon: "M8 10h8m-8 4h5M5 4h14a2 2 0 012 2v10a2 2 0 01-2 2H9l-4 3v-3a2 2 0 01-2-2V6a2 2 0 012-2z" },
@@ -34,7 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (!isPending) {
       if (!session || !isBackofficeRole(session.user.role)) {
         router.push("/");
-      } else if (staff && ["/admin/settings", "/admin/users", "/admin/categories", "/admin/timeslots", "/admin/testimonials"].some((path) => pathname.startsWith(path))) {
+      } else if (staff && ["/admin/settings", "/admin/users", "/admin/categories", "/admin/timeslots", "/admin/testimonials", "/admin/analytics"].some((path) => pathname.startsWith(path))) {
         router.push("/admin");
       } else {
         setAuthorized(true);

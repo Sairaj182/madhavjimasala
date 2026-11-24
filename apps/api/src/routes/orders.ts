@@ -1,20 +1,33 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "@repo/db";
+import { Prisma } from "@prisma/client";
 import { isAdminRole, isOwnerRole, isStaffRole, requireAdmin, requireAuth, requireOwner } from "../middleware/auth";
 import { z } from "zod";
 import { randomInt } from "node:crypto";
 import { notifyUser } from "../lib/push";
 import { quoteGeneralStoreSelection } from "../lib/general-store-pricing";
 import { getGeneralStoreControls } from "../lib/general-store-settings";
+import { checkoutHash, quoteCart, storeCartItems } from "../lib/store-cart";
+import { StoreRequestError, storeTransaction } from "../lib/store-transaction";
+import { isBookablePickup } from "../lib/pickup-time";
 
 const MAX_INT = 2_147_483_647;
 
 const createOrderSchema = z.object({
-  pickupSlotId: z.string(),
+  pickupSlotId: z.string().min(1).max(120),
+  cartRevision: z.string().regex(/^[a-f0-9]{64}$/),
   paymentMethod: z.literal("CASH").default("CASH"),
   customerName: z.string().trim().min(1).max(120),
   pickupPersonName: z.string().trim().min(1).max(120),
 });
+
+const orderDetails = { items: true, pickupSlot: true } satisfies Prisma.OrderInclude;
+
+function presentOrder<T extends { idempotencyKey: string | null; pickupNumber: string }>(order: T, canSeePickup: boolean) {
+  const { idempotencyKey, pickupNumber, ...details } = order;
+  void idempotencyKey;
+  return { ...details, ...(canSeePickup ? { pickupNumber } : {}) };
+}
 
 const updateOrderStatusSchema = z.object({
   status: z.enum(["PENDING", "PARTIALLY_ACCEPTED", "CONFIRMED", "READY_FOR_PICKUP", "CANCELLED"]),
@@ -65,13 +78,15 @@ function packingWeightGrams(packing: unknown) {
   return parseWeightGrams(item.weight);
 }
 
-function findPacking(product: { packagingSizes: unknown }, label: string | undefined) {
+function findPacking(product: { packagingSizes: unknown }, label: string | undefined, weight?: string | null) {
   const packings = Array.isArray(product.packagingSizes) ? product.packagingSizes : [];
-  return packings.find((packing) => typeof packing === "object" && packing !== null && (packing as { label?: unknown }).label === label) as { label?: string; weight?: string; weightGrams?: number; availability?: string } | undefined;
+  const matching = packings.filter((packing): packing is { label: string; weight?: string; weightGrams?: number; availability?: string } =>
+    typeof packing === "object" && packing !== null && packing.label === label);
+  return matching.find((packing) => packing.weight === weight) ?? (matching.length === 1 ? matching[0] : undefined);
 }
 
 export async function orderRoutes(app: FastifyInstance) {
-  // All order routes require authentication
+  app.addHook("onRequest", async (_request, reply) => { reply.header("Cache-Control", "private, no-store"); });
   app.addHook('preHandler', requireAuth);
 
   // User: Get my orders
@@ -87,7 +102,15 @@ export async function orderRoutes(app: FastifyInstance) {
         items: true
       }
     });
-    return reply.send(orders);
+    return reply.send(orders.map((order) => presentOrder(order, true)));
+  });
+
+  app.get("/:id/receipt", async (request, reply) => {
+    const userId: string = (request as any).user.id;
+    const { id } = request.params as { id: string };
+    const order = await prisma.order.findUnique({ where: { id, userId }, include: orderDetails });
+    if (!order) return reply.code(404).send({ error: "Order not found" });
+    return reply.send(presentOrder(order, true));
   });
 
   // User: Get order by ID
@@ -106,104 +129,68 @@ export async function orderRoutes(app: FastifyInstance) {
     if (!order || (order.userId !== userId && !isAdminRole((request as any).user.role))) {
       return reply.status(404).send({ error: "Order not found" });
     }
-    if (!isOwnerRole((request as any).user.role)) {
-      const { pickupNumber: _pickupNumber, ...staffOrder } = order;
-      void _pickupNumber;
-      return reply.send(staffOrder);
-    }
-    return reply.send(order);
+    return reply.send(presentOrder(order, order.userId === userId || isOwnerRole((request as any).user.role)));
   });
 
-  // User: Checkout / Create Order
-  app.post("/", async (request, reply) => {
+  // One completed order per reviewed cart. A new cart has a new revision, even for identical products.
+  app.post("/", { bodyLimit: 8192 }, async (request, reply) => {
     try {
-      const controls = await getGeneralStoreControls();
-      if (!controls.generalStoreEnabled || !controls.generalStoreCheckoutOpen) return reply.status(503).send({ error: controls.generalStoreMaintenanceMessage });
-      const userId = (request as any).user.id;
-      const { pickupSlotId, paymentMethod, customerName, pickupPersonName } = createOrderSchema.parse(request.body);
-      const headerKey = request.headers["idempotency-key"];
-      const idempotencyKey = typeof headerKey === "string" && /^[A-Za-z0-9._-]{8,120}$/.test(headerKey) ? headerKey : null;
-      if (idempotencyKey) {
-        const existing = await prisma.order.findUnique({ where: { idempotencyKey }, include: { items: true, pickupSlot: true } });
-        if (existing && existing.userId === userId) return reply.send(existing);
-      }
-
-      // 1. Get Cart
-      const cart = await prisma.cart.findUnique({
-        where: { userId },
-        include: {
-          items: {
-            include: { product: true }
-          }
-        }
-      });
-
-      if (!cart || cart.items.length === 0) {
-        return reply.status(400).send({ error: "Cart is empty" });
-      }
-      if (cart.items.some((item) => !item.product.isGeneralStore)) {
-        return reply.status(400).send({ error: "Only general store products can be checked out" });
-      }
-      if (cart.items.some((item) => !item.product.isActive)) {
-        return reply.status(409).send({ error: "One or more products in your cart are currently unavailable" });
-      }
-      if (cart.items.some((item) => item.quantity < 1 || item.quantity > 100000)) {
-        return reply.status(400).send({ error: "Cart contains an invalid quantity" });
-      }
-
-      // 2. Validate Pickup Slot
-      const pickupSlot = await prisma.pickupSlot.findUnique({
-        where: { id: pickupSlotId }
-      });
-      if (!pickupSlot || !pickupSlot.isActive) {
-        return reply.status(400).send({ error: "Invalid or inactive pickup slot" });
-      }
-
-      // 3. Calculate Total and Prepare Items
-      let totalInPaise = 0;
-      const orderItemsData = cart.items.map(item => {
-        const quote = quoteGeneralStoreSelection(item.product, {
-          quantity: item.quantity,
-          selectionType: item.selectionType,
-          packingLabel: item.packingLabel,
-          packingWeight: item.packingWeight,
-          requestedWeightGrams: item.requestedWeightGrams,
+      const userId: string = (request as any).user.id;
+      const { pickupSlotId, paymentMethod, customerName, pickupPersonName, cartRevision } = createOrderSchema.parse(request.body);
+      const idempotencyKey = checkoutHash(["checkout-v1", userId, cartRevision]);
+      const result = await storeTransaction(async (tx) => {
+        const existing = await tx.order.findUnique({
+          where: { idempotencyKey, userId },
+          include: orderDetails,
         });
-        totalInPaise += quote.totalPriceInPaise;
-        return {
-          productId: item.productId,
-          productName: item.product.name,
-          packingLabel: item.packingLabel,
-          packingWeight: item.packingWeight,
-          acceptedPackingLabel: item.packingLabel,
-          acceptedPackingWeight: item.packingWeight,
-          selectionType: quote.selectionType,
-          requestedWeightGrams: quote.requestedWeightGrams ?? null,
-          acceptedWeightGrams: quote.acceptedWeightGrams,
-          pricingUnit: quote.pricingUnit,
-          unitPriceInPaise: quote.unitPriceInPaise,
-          requestedQuantity: quote.quantity,
-          quantity: quote.quantity,
-          totalPriceInPaise: quote.totalPriceInPaise
-        };
-      });
-      if (!Number.isSafeInteger(totalInPaise) || totalInPaise > MAX_INT) {
-        return reply.status(400).send({ error: "Order total exceeds the supported limit" });
-      }
-
-      // 4. Create Order & clear cart inside a transaction
-      const order = await prisma.$transaction(async (tx) => {
-        const activeOrdersForSlot = await tx.order.count({
-          where: {
-            pickupSlotId,
-            status: { not: "CANCELLED" },
-          },
-        });
-        if (activeOrdersForSlot >= pickupSlot.capacity) {
-          throw new Error("This pickup slot is full. Please choose another slot");
+        if (existing) {
+          const sameDetails = existing.pickupSlotId === pickupSlotId
+            && existing.customerName === customerName && existing.pickupPersonName === pickupPersonName;
+          return { order: existing, created: false, sameDetails };
         }
 
-        const newOrder = await tx.order.create({
+        const controls = await getGeneralStoreControls(tx);
+        if (!controls.generalStoreEnabled || !controls.generalStoreCheckoutOpen || !controls.generalStorePickupOpen || !controls.generalStoreCartOpen) {
+          throw new StoreRequestError(503, "CHECKOUT_CLOSED", controls.generalStoreMaintenanceMessage);
+        }
+
+        const cart = await tx.cart.findUnique({ where: { userId }, include: { items: storeCartItems } });
+        const { lines, revision, totalInPaise } = quoteCart(cart?.items ?? []);
+        if (revision !== cartRevision || !cart || !lines.length) {
+          throw new StoreRequestError(409, "CART_CHANGED", "Your cart changed. Review the current items and prices before confirming.");
+        }
+        const orderItems = lines.map(({ item, quote }) => {
+          if (!quote) throw new StoreRequestError(409, "CART_CHANGED", "Some cart items changed or are unavailable. Review your cart.");
+          return {
+            productId: item.productId,
+            productName: item.product.name,
+            packingLabel: quote.packingLabel,
+            packingWeight: quote.packingWeight,
+            acceptedPackingLabel: quote.packingLabel,
+            acceptedPackingWeight: quote.packingWeight,
+            selectionType: quote.selectionType,
+            requestedWeightGrams: quote.requestedWeightGrams ?? null,
+            acceptedWeightGrams: quote.acceptedWeightGrams,
+            pricingUnit: quote.pricingUnit,
+            unitPriceInPaise: quote.unitPriceInPaise,
+            requestedQuantity: quote.quantity,
+            quantity: quote.quantity,
+            totalPriceInPaise: quote.totalPriceInPaise,
+          };
+        });
+        if (!Number.isSafeInteger(totalInPaise) || totalInPaise > MAX_INT) {
+          throw new StoreRequestError(400, "TOTAL_TOO_LARGE", "Your order total exceeds the supported limit. Reduce the quantities in your cart.");
+        }
+
+        const pickupSlot = await tx.pickupSlot.findUnique({
+          where: { id: pickupSlotId },
+          include: { _count: { select: { orders: { where: { status: { not: "CANCELLED" } } } } } },
+        });
+        if (!pickupSlot || !isBookablePickup(pickupSlot) || pickupSlot._count.orders >= pickupSlot.capacity) {
+          throw new StoreRequestError(409, "PICKUP_UNAVAILABLE", "That pickup slot is no longer available. Please choose another slot.");
+        }
+
+        const order = await tx.order.create({
           data: {
             pickupNumber: generatePickupNumber(),
             idempotencyKey,
@@ -213,28 +200,31 @@ export async function orderRoutes(app: FastifyInstance) {
             pickupPersonName,
             paymentMethod,
             totalInPaise,
-            items: {
-              create: orderItemsData
-            }
+            items: { create: orderItems },
           },
-          include: {
-            items: true,
-            pickupSlot: true
-          }
+          include: orderDetails,
         });
 
-        // Clear cart
-        await tx.cartItem.deleteMany({
-          where: { cartId: cart.id }
+        await tx.cartItem.deleteMany({ where: { cartId: cart.id, id: { in: lines.map(({ item }) => item.id) } } });
+        return { order, created: true, sameDetails: true };
+      });
+
+      if (!result.sameDetails) {
+        return reply.code(409).send({
+          code: "ORDER_ALREADY_PLACED", orderId: result.order.id,
+          error: "An order was already placed for this cart. Check its pickup details.",
         });
-
-        return newOrder;
-      }, { isolationLevel: "Serializable" });
-
-      void notifyUser(userId, "Order received", `Your pickup order ${order.pickupNumber} has been received.`, "/orders");
-      return reply.status(201).send(order);
-    } catch (err: any) {
-      return reply.status(400).send({ error: err.message });
+      }
+      if (result.created) {
+        void notifyUser(userId, "Order received", "Your pickup order has been received.", "/orders")
+          .catch(() => request.log.warn("Could not send the order receipt notification"));
+      }
+      return reply.code(result.created ? 201 : 200).send(presentOrder(result.order, true));
+    } catch (error) {
+      if (error instanceof StoreRequestError) return reply.code(error.status).send({ code: error.code, error: error.message });
+      if (error instanceof z.ZodError) return reply.code(400).send({ code: "INVALID_CHECKOUT", error: "Enter valid checkout details and review your cart before confirming." });
+      request.log.error({ code: error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined }, "Checkout request failed");
+      return reply.code(500).send({ error: "Could not verify whether your order was placed. Please retry the same checkout." });
     }
   });
 
@@ -298,9 +288,19 @@ export async function orderRoutes(app: FastifyInstance) {
         const product = item.productId ? productsById.get(item.productId) : undefined;
         if (!product) return reply.status(409).send({ error: `${item.productName} is no longer available for repricing` });
         const update = updatesById.get(item.id);
-        const originalPacking = item.selectionType === "PACKED" ? findPacking(product, item.packingLabel) : undefined;
-        const originalUnitWeight = item.selectionType === "LOOSE" ? item.requestedWeightGrams : packingWeightGrams(originalPacking);
-        if (!originalUnitWeight) return reply.status(409).send({ error: `${item.productName} does not have a usable weight configured` });
+        const originalPacking = item.selectionType === "PACKED" ? findPacking(product, item.packingLabel, item.packingWeight) : undefined;
+        const originalUnitWeight = item.selectionType === "LOOSE" ? item.requestedWeightGrams
+          : parseWeightGrams(item.packingWeight) ?? packingWeightGrams(originalPacking);
+        if (!originalUnitWeight) {
+          if (
+            item.selectionType !== "PACKED" || update?.acceptedSelectionType === "LOOSE" ||
+            update?.acceptedTotalWeightGrams !== undefined ||
+            (update?.acceptedPackingLabel && update.acceptedPackingLabel !== item.packingLabel)
+          ) return reply.status(409).send({ error: `${item.productName} can only be prepared in its original quantity without a configured weight` });
+          acceptedQuotes.set(item.id, quoteGeneralStoreSelection(product, { ...item, quantity: item.requestedQuantity }));
+          acceptedQuantities.set(item.id, item.requestedQuantity);
+          continue;
+        }
         const requestedTotalWeight = originalUnitWeight * item.requestedQuantity;
         requestedWeights.set(item.id, requestedTotalWeight);
         const acceptedSelectionType = update?.acceptedSelectionType || item.selectionType;
@@ -325,7 +325,7 @@ export async function orderRoutes(app: FastifyInstance) {
           };
         } else {
           const acceptedLabel = update?.acceptedPackingLabel || item.packingLabel;
-          const acceptedPacking = findPacking(product, acceptedLabel);
+          const acceptedPacking = findPacking(product, acceptedLabel, update?.acceptedPackingWeight ?? item.packingWeight);
           if (!acceptedPacking || acceptedPacking.availability === "UNAVAILABLE") return reply.status(400).send({ error: `${item.productName} has no available packing option selected` });
           const acceptedUnitWeight = packingWeightGrams(acceptedPacking);
           if (!acceptedUnitWeight) return reply.status(400).send({ error: `${item.productName} selected packing has no usable weight` });
@@ -354,14 +354,18 @@ export async function orderRoutes(app: FastifyInstance) {
       });
       const status = fullyAccepted ? "CONFIRMED" : "PARTIALLY_ACCEPTED";
       const updated = await prisma.$transaction(async (tx) => {
+        const transition = await tx.order.updateMany({
+          where: { id, status: order.status, updatedAt: order.updatedAt }, data: { status, totalInPaise },
+        });
+        if (transition.count !== 1) throw new StoreRequestError(409, "ORDER_CHANGED", "The order changed. Refresh and review it again.");
         await Promise.all(order.items.map((item) =>
           tx.orderItem.update({
             where: { id: item.id },
             data: {
               available: (requestedQuantities.get(item.id) ?? 0) > 0,
               quantity: acceptedQuantities.get(item.id) ?? 0,
-              totalPriceInPaise: acceptedQuotes.get(item.id)?.totalPriceInPaise || 0,
-              unitPriceInPaise: acceptedQuotes.get(item.id)?.unitPriceInPaise || item.unitPriceInPaise,
+              totalPriceInPaise: acceptedQuotes.get(item.id)?.totalPriceInPaise ?? 0,
+              unitPriceInPaise: acceptedQuotes.get(item.id)?.unitPriceInPaise ?? item.unitPriceInPaise,
               pricingUnit: acceptedQuotes.get(item.id)?.pricingUnit || item.pricingUnit,
               acceptedWeightGrams: acceptedQuotes.get(item.id)?.acceptedWeightGrams || null,
               acceptedPackingLabel: (requestedQuantities.get(item.id) ?? 0) > 0
@@ -374,9 +378,8 @@ export async function orderRoutes(app: FastifyInstance) {
             },
           })
         ));
-        return tx.order.update({
+        return tx.order.findUniqueOrThrow({
           where: { id },
-          data: { status, totalInPaise },
           include: { pickupSlot: true, items: true, user: { select: { email: true } } },
         });
       });
@@ -385,14 +388,15 @@ export async function orderRoutes(app: FastifyInstance) {
         status === "PARTIALLY_ACCEPTED" ? "Order partially confirmed" : "Order confirmed",
         status === "PARTIALLY_ACCEPTED"
           ? "Some requested items or quantities changed. Open your orders to see the store fulfilment details."
-          : `Your order ${order.pickupNumber} has been confirmed and is being prepared.`,
+          : "Your order has been confirmed and is being prepared.",
         "/orders",
-      );
+      ).catch(() => request.log.warn("Could not send the order review notification"));
       return reply.send({
-        ...updated,
+        ...presentOrder(updated, isOwnerRole((request as any).user.role)),
         items: updated.items.map((item) => ({ ...item, product: item.productId ? productsById.get(item.productId) || null : null })),
       });
     } catch (err: any) {
+      if (err instanceof StoreRequestError) return reply.code(err.status).send({ error: err.message, code: err.code });
       return reply.status(400).send({ error: err.message });
     }
   });
@@ -447,12 +451,16 @@ export async function orderRoutes(app: FastifyInstance) {
       }
 
       const order = await prisma.order.update({
-        where: { id },
+        where: { id, status: currentOrder.status, updatedAt: currentOrder.updatedAt },
         data: { status },
       });
-      void notifyUser(order.userId, "Order status updated", `Your order is now ${status.replaceAll("_", " ").toLowerCase()}.`, "/orders");
-      return reply.send(order);
+      void notifyUser(order.userId, "Order status updated", `Your order is now ${status.replaceAll("_", " ").toLowerCase()}.`, "/orders")
+        .catch(() => request.log.warn("Could not send the order status notification"));
+      return reply.send(presentOrder(order, isOwnerRole((request as any).user.role)));
     } catch (err: any) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+        return reply.code(409).send({ error: "The order changed. Refresh and try again." });
+      }
       return reply.status(400).send({ error: err.message });
     }
   });
@@ -487,7 +495,7 @@ export async function orderRoutes(app: FastifyInstance) {
       }
 
       const updated = await prisma.order.update({
-        where: { id },
+        where: { id, status: order.status, updatedAt: order.updatedAt },
         data: {
           paymentStatus: paymentPaid ? "PAID" : order.paymentStatus,
           ...(pickedUp
@@ -505,10 +513,14 @@ export async function orderRoutes(app: FastifyInstance) {
         },
       });
       if (pickedUp) {
-        void notifyUser(order.userId, "Order picked up", "Your payment was recorded and your order was collected.", "/orders");
+        void notifyUser(order.userId, "Order picked up", "Your payment was recorded and your order was collected.", "/orders")
+          .catch(() => request.log.warn("Could not send the pickup notification"));
       }
       return reply.send(updated);
     } catch (err: any) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+        return reply.code(409).send({ error: "The order changed. Refresh and try again." });
+      }
       return reply.status(400).send({ error: err.message });
     }
   });

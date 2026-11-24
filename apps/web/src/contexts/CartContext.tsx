@@ -1,167 +1,160 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { authClient } from "@/lib/auth-client";
+import { STORE_API_URL, StoreApiError, storeResponse } from "@/lib/store-api";
 import { useRouter } from "next/navigation";
 
-interface CartItem {
+export type CartItem = {
   id: string;
   productId: string;
   quantity: number;
-  packingLabel?: string;
-  packingWeight?: string;
-  selectionType?: "PACKED" | "LOOSE";
-  requestedWeightGrams?: number;
-  quotedUnitPriceInPaise?: number;
-  quotedTotalInPaise?: number;
-  product: any;
-}
+  packingLabel: string;
+  packingWeight: string | null;
+  selectionType: "PACKED" | "LOOSE";
+  requestedWeightGrams: number | null;
+  pricingUnit: "PACK" | "GRAM" | "KILOGRAM" | null;
+  quotedUnitPriceInPaise: number | null;
+  quotedTotalInPaise: number | null;
+  quoteError: string | null;
+  product: { id: string; slug: string; name: string; images: string[] };
+};
 
-interface CartContextType {
+type Cart = { items: CartItem[]; revision: string; totalInPaise: number };
+
+type CartContextType = {
   cartItems: CartItem[];
-  addToCart: (productId: string, quantity: number, packingLabel?: string, packingWeight?: string, selectionType?: "PACKED" | "LOOSE", requestedWeightGrams?: number) => Promise<void>;
-  updateQuantity: (itemId: string, quantity: number) => Promise<void>;
+  addToCart: (productId: string, quantity: number, packingLabel?: string, packingWeight?: string, selectionType?: "PACKED" | "LOOSE", requestedWeightGrams?: number) => Promise<boolean>;
+  changeQuantity: (itemId: string, delta: -1 | 1) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
+  revision?: string;
   totalInPaise: number;
   loading: boolean;
-  refreshCart: () => Promise<void>;
-}
+  updating: boolean;
+  error: string;
+  sessionExpired: boolean;
+  refreshCart: (force?: boolean) => Promise<Cart | null>;
+};
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
+  const userId = session?.user.id;
   const router = useRouter();
+  const [view, setView] = useState<{ userId: string; cart: Cart | null; error: string; sessionExpired?: boolean }>();
+  const [pending, setPending] = useState(0);
+  const activeUser = useRef<string | undefined>(undefined);
+  const read = useRef<{ userId: string; controller: AbortController; promise: Promise<Cart | null> } | null>(null);
+  const mutationQueue = useRef<Promise<void>>(Promise.resolve());
+  const lastWrite = useRef(0);
 
-  const fetchCart = async () => {
-    if (!session?.user) {
-      setCartItems([]);
-      setLoading(false);
-      return;
+  const refreshCart = useCallback((force = false) => {
+    if (!userId || activeUser.current !== userId) return Promise.resolve(null);
+    if (force) {
+      read.current?.controller.abort();
+      read.current = null;
     }
+    if (read.current?.userId === userId) return read.current.promise;
 
-    try {
-      setLoading(true);
-      // We pass credentials included by better-auth automatically if they are on same domain,
-      // but since they might be cross-origin, better-auth handles it with cookies if set up, 
-      // or we can attach the token. We'll use fetch with credentials.
-      const res = await fetch(`${API_URL}/cart`, {
-        headers: {},
-        credentials: "include",
+    const controller = new AbortController();
+    const promise = fetch(`${STORE_API_URL}/cart`, {
+      credentials: "include", cache: "no-store", signal: controller.signal,
+    }).then((response) => storeResponse<Cart>(response, "Could not load your cart."))
+      .then((cart) => {
+        if (controller.signal.aborted || activeUser.current !== userId) return null;
+        setView({ userId, cart, error: "" });
+        return cart;
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted || activeUser.current !== userId) return null;
+        const expired = error instanceof StoreApiError && error.status === 401;
+        setView((previous) => ({
+          userId,
+          cart: !expired && previous?.userId === userId ? previous.cart : null,
+          sessionExpired: expired,
+          error: expired ? "Your session expired. Sign in again to view your cart."
+            : error instanceof Error ? error.message : "Could not load your cart.",
+        }));
+        return null;
+      })
+      .finally(() => {
+        if (read.current?.controller === controller) read.current = null;
       });
-
-      if (!res.ok) {
-        if (res.status === 401) {
-          // Unauthenticated or mock mode
-          return;
-        }
-        throw new Error("Failed to fetch cart");
-      }
-
-      const data = await res.json();
-      setCartItems(data.items || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    read.current = { userId, controller, promise };
+    return promise;
+  }, [userId]);
 
   useEffect(() => {
-    fetchCart();
-  }, [session?.user]);
+    activeUser.current = userId;
+    void refreshCart();
+    return () => {
+      activeUser.current = undefined;
+      read.current?.controller.abort();
+      read.current = null;
+    };
+  }, [userId, refreshCart]);
 
-  const addToCart = async (productId: string, quantity: number, packingLabel = "default", packingWeight?: string, selectionType: "PACKED" | "LOOSE" = "PACKED", requestedWeightGrams?: number) => {
-    if (!session?.user) {
-      const callbackUrl = `${window.location.pathname}${window.location.search}`;
-      router.push(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
-      return;
-    }
+  function signIn() {
+    const callbackUrl = window.location.pathname + window.location.search;
+    router.push(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+  }
 
-    try {
-      const res = await fetch(`${API_URL}/cart/items`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ productId, quantity, packingLabel, packingWeight, selectionType, requestedWeightGrams })
-      });
-      
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error || "Failed to add item");
+  function mutate(path: string, method: string, body?: object) {
+    if (!userId) return Promise.reject(new StoreApiError("Sign in to update your cart.", 401));
+    setPending((count) => count + 1);
+    const write = ++lastWrite.current;
+    const operation = mutationQueue.current.then(async () => {
+      if (activeUser.current !== userId) throw new StoreApiError("Your session changed. Open your cart again.", 401);
+      try {
+        const response = await fetch(STORE_API_URL + path, {
+          method,
+          credentials: "include",
+          ...(body ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {}),
+        });
+        if (!response.ok) await storeResponse(response, "Could not update your cart.");
+      } finally {
+        if (activeUser.current === userId && lastWrite.current === write) {
+          // A read that started before a write can contain an older snapshot.
+          await refreshCart(true);
+        }
       }
-      await fetchCart();
-    } catch (err) {
-      console.error(err);
-      throw err;
+    }).finally(() => setPending((count) => count - 1));
+    mutationQueue.current = operation.catch(() => {});
+    return operation;
+  }
+
+  async function addToCart(productId: string, quantity: number, packingLabel = "default", packingWeight?: string, selectionType: "PACKED" | "LOOSE" = "PACKED", requestedWeightGrams?: number) {
+    if (isPending) return false;
+    if (!userId) {
+      signIn();
+      return false;
     }
-  };
-
-  const updateQuantity = async (itemId: string, quantity: number) => {
-    if (!session?.user) return;
-
     try {
-      const res = await fetch(`${API_URL}/cart/items/${itemId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ quantity })
-      });
-      
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error || "Failed to update item");
-      }
-      await fetchCart();
-    } catch (err) {
-      console.error(err);
-      throw err;
+      await mutate("/cart/items", "POST", { productId, quantity, packingLabel, packingWeight, selectionType, requestedWeightGrams });
+      return true;
+    } catch (error) {
+      if (!(error instanceof StoreApiError) || error.status !== 401) throw error;
+      signIn();
+      return false;
     }
-  };
+  }
 
-  const removeItem = async (itemId: string) => {
-    if (!session?.user) return;
-
-    try {
-      const res = await fetch(`${API_URL}/cart/items/${itemId}`, {
-        method: "DELETE",
-        credentials: "include"
-      });
-      
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error || "Failed to remove item");
-      }
-      await fetchCart();
-    } catch (err) {
-      console.error(err);
-      throw err;
-    }
-  };
-
-  const totalInPaise = cartItems.reduce((total, item) => {
-    const itemTotal = item.quotedTotalInPaise && item.quotedTotalInPaise > 0
-      ? item.quotedTotalInPaise
-      : (item.product.priceInPaise || (item.product.price * 100)) * item.quantity;
-    return total + itemTotal;
-  }, 0);
-
+  const current = userId && view?.userId === userId ? view : undefined;
   return (
-    <CartContext.Provider
-      value={{
-        cartItems,
-        addToCart,
-        updateQuantity,
-        removeItem,
-        totalInPaise,
-        loading,
-        refreshCart: fetchCart,
-      }}
-    >
+    <CartContext.Provider value={{
+      cartItems: current?.cart?.items ?? [],
+      addToCart,
+      changeQuantity: (itemId, delta) => mutate(`/cart/items/${encodeURIComponent(itemId)}`, "PUT", { quantityDelta: delta }),
+      removeItem: (itemId) => mutate(`/cart/items/${encodeURIComponent(itemId)}`, "DELETE"),
+      revision: current?.cart?.revision,
+      totalInPaise: current?.cart?.totalInPaise ?? 0,
+      loading: isPending || Boolean(userId && !current),
+      updating: pending > 0,
+      error: current?.error ?? "",
+      sessionExpired: current?.sessionExpired ?? false,
+      refreshCart,
+    }}>
       {children}
     </CartContext.Provider>
   );
@@ -169,8 +162,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
 export function useCart() {
   const context = useContext(CartContext);
-  if (context === undefined) {
-    throw new Error("useCart must be used within a CartProvider");
-  }
+  if (!context) throw new Error("useCart must be used within a CartProvider");
   return context;
 }

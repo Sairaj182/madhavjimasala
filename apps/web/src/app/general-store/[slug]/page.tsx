@@ -8,7 +8,7 @@ export default async function GeneralStoreProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = await getProduct(slug);
+  const product = await getProduct(slug, "GENERAL_STORE");
 
   if (!product || !product.isGeneralStore) {
     notFound();

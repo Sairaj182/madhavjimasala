@@ -3,40 +3,42 @@ import { prisma } from "@repo/db";
 import { requireOwner } from "../middleware/auth";
 import { z } from "zod";
 import { getGeneralStoreControls } from "../lib/general-store-settings";
+import { isBookablePickup, pickupMinutes, storeDate } from "../lib/pickup-time";
 
 const createSlotSchema = z.object({
-  date: z.string().transform((str) => new Date(str)),
-  startTime: z.string(), // "11:00 AM"
-  endTime: z.string(),   // "11:30 AM"
-  capacity: z.number().int().min(1).default(10),
+  date: z.iso.date().transform((str) => new Date(str)),
+  startTime: z.string().trim().max(16),
+  endTime: z.string().trim().max(16),
+  capacity: z.number().int().min(1).max(2147483647).default(10),
   isActive: z.boolean().default(true),
-});
+}).refine(({ startTime, endTime }) => {
+  const start = pickupMinutes(startTime);
+  const end = pickupMinutes(endTime);
+  return start !== null && end !== null && end > start;
+}, { message: "Enter valid same-day pickup times with the end after the start." });
 
 export async function pickupRoutes(app: FastifyInstance) {
-  // Public/Authenticated - get available slots
-  // Wait, users need this to checkout, so just public is fine
-  app.get("/slots", async (request, reply) => {
+  app.get("/slots", async (_request, reply) => {
+    reply.header("Cache-Control", "no-store");
     const controls = await getGeneralStoreControls();
     if (!controls.generalStoreEnabled || !controls.generalStorePickupOpen) return reply.status(503).send({ error: controls.generalStoreMaintenanceMessage });
-    // Only return slots that are active and in the future
+    const now = new Date();
     const slots = await prisma.pickupSlot.findMany({
-      where: {
-        isActive: true,
-        date: {
-          gte: new Date(new Date().setHours(0,0,0,0)) // From today onwards
-        }
+      where: { isActive: true, date: { gte: storeDate(now) } },
+      orderBy: [{ date: "asc" }, { id: "asc" }],
+      select: {
+        id: true, date: true, startTime: true, endTime: true, capacity: true, isActive: true,
+        _count: { select: { orders: { where: { status: { not: "CANCELLED" } } } } },
       },
-      orderBy: [
-        { date: 'asc' },
-        { startTime: 'asc' }
-      ]
     });
-    const withUsage = await Promise.all(slots.map(async (slot) => {
-      const booked = await prisma.order.count({
-        where: { pickupSlotId: slot.id, status: { not: "CANCELLED" } },
-      });
-      return { ...slot, bookedCount: booked, remainingCapacity: Math.max(0, slot.capacity - booked) };
-    }));
+    const withUsage = slots.filter((slot) => isBookablePickup(slot, now))
+      .sort((first, second) => first.date.getTime() - second.date.getTime()
+        || (pickupMinutes(first.startTime) ?? 0) - (pickupMinutes(second.startTime) ?? 0))
+      .map(({ _count, ...slot }) => ({
+        ...slot,
+        bookedCount: _count.orders,
+        remainingCapacity: Math.max(0, slot.capacity - _count.orders),
+      }));
     return reply.send(withUsage);
   });
 

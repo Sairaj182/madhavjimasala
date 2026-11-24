@@ -12,21 +12,22 @@ export async function getProducts(kind?: "GENERAL_STORE") {
     if (!res.ok) throw new Error("Failed to fetch products");
     return await res.json();
   } catch (err) {
-    console.error("Falling back to local PRODUCTS due to API error:", err);
     if (kind) throw err;
+    console.error("Falling back to local PRODUCTS due to API error:", err);
     return PRODUCTS;
   }
 }
 
-export async function getProduct(slug: string) {
+export async function getProduct(slug: string, kind?: "GENERAL_STORE") {
   try {
-    const res = await fetch(`${API_URL}/products/${slug}`, { cache: "no-store" });
+    const res = await fetch(`${API_URL}/products/${encodeURIComponent(slug)}`, { cache: "no-store" });
     if (!res.ok) {
       if (res.status === 404) return null;
       throw new Error("Failed to fetch product");
     }
     return await res.json();
   } catch (err) {
+    if (kind) throw err;
     console.error("Falling back to local PRODUCTS due to API error:", err);
     return PRODUCTS.find((p) => p.slug === slug) || null;
   }
