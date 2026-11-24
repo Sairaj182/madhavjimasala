@@ -1,167 +1,116 @@
 "use client";
 
-import { useCart } from "@/contexts/CartContext";
-import { authClient } from "@/lib/auth-client";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { formatRate, formatWeightGrams, formatWeightText, looseRateUnit } from "@/lib/general-store-display";
+import { useCart } from "@/contexts/CartContext";
+import { authClient } from "@/lib/auth-client";
+import { cartItemDescription, formatPaise, formatRate } from "@/lib/general-store-display";
+
+const actionClass = "inline-flex w-full items-center justify-center rounded-full bg-brand-maroon px-5 py-3 font-semibold text-white hover:bg-brand-maroon-dark disabled:opacity-50";
 
 export default function CartPage() {
-  const { cartItems, totalInPaise, updateQuantity, removeItem, loading } = useCart();
+  const { cartItems, totalInPaise, changeQuantity, removeItem, loading, updating, error, sessionExpired, refreshCart } = useCart();
   const { data: session } = authClient.useSession();
-  const router = useRouter();
+  const [actionError, setActionError] = useState("");
+  const hasUnavailableItems = cartItems.some((item) => item.quoteError);
+  const notice = error || actionError;
 
-  if (!session?.user) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center bg-brand-cream/50 px-4">
-        <h2 className="text-2xl font-bold font-heading text-brand-dark mb-4">Please Sign In</h2>
-        <p className="text-brand-gray mb-8 text-center max-w-md">
-          You need to be signed in to view your cart and checkout.
-        </p>
-        <Link
-          href="/login?callbackUrl=%2Fcart"
-          className="rounded-full bg-brand-maroon px-8 py-3 text-sm font-semibold text-white hover:bg-brand-maroon-dark transition-colors"
-        >
-          Sign In
-        </Link>
-      </div>
-    );
+  useEffect(() => {
+    const refresh = () => { void refreshCart(); };
+    refresh();
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, [refreshCart]);
+
+  async function update(action: () => Promise<void>) {
+    setActionError("");
+    try {
+      await action();
+    } catch (failure) {
+      setActionError(failure instanceof Error ? failure.message : "Could not update your cart.");
+    }
   }
 
-  if (loading) {
+  if (loading) return <p role="status" className="py-24 text-center text-brand-gray">Loading your cart…</p>;
+  if (!session?.user || (!cartItems.length && !notice)) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-brand-gold border-t-brand-maroon rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (cartItems.length === 0) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center bg-brand-cream/50 px-4">
-        <svg className="w-20 h-20 text-brand-gold/40 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-        <h2 className="text-2xl font-bold font-heading text-brand-dark mb-4">Your cart is empty</h2>
-        <p className="text-brand-gray mb-8">Looks like you haven't added any spices yet.</p>
-        <Link
-          href="/general-store"
-          className="rounded-full bg-brand-maroon px-8 py-3 text-sm font-semibold text-white hover:bg-brand-maroon-dark transition-colors"
-        >
-          Explore Products
-        </Link>
-      </div>
+      <main className="mx-auto my-12 max-w-lg px-4">
+        <div className="rounded-2xl border border-brand-border bg-white p-6 text-center shadow-sm sm:p-10">
+          <h1 className="text-2xl font-bold font-heading text-brand-dark">{session?.user ? "Your cart is empty" : "Sign in to see your cart"}</h1>
+          <Link className={`mt-5 ${actionClass}`} href={session?.user ? "/general-store" : "/login?callbackUrl=%2Fcart"}>
+            {session?.user ? "Browse the General Store" : "Sign In"}
+          </Link>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-      <h1 className="text-3xl font-heading font-bold text-brand-dark mb-8">Your Cart</h1>
-      <p className="-mt-5 mb-8 text-sm text-brand-gray">તમારી વસ્તુઓ તપાસો અને પછી ઓર્ડર કન્ફર્મ કરવા આગળ વધો.</p>
-      
-      <div className="lg:grid lg:grid-cols-12 lg:gap-12">
-        <div className="lg:col-span-8">
-          <ul className="divide-y divide-brand-border border-t border-b border-brand-border">
+    <main className="min-h-[60vh] bg-brand-cream/30 py-8 sm:py-12">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <Link href="/general-store" className="text-sm font-semibold text-brand-maroon hover:underline">← Continue shopping</Link>
+        <h1 className="mt-3 text-3xl font-bold font-heading text-brand-dark">Your Cart</h1>
+        <p className="mt-2 text-sm text-brand-gray">તમારી વસ્તુઓ તપાસો અને પછી ઓર્ડર કન્ફર્મ કરવા આગળ વધો.</p>
+        {notice && (
+          <div role="alert" className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            {notice}
+            {sessionExpired
+              ? <Link href="/login?callbackUrl=%2Fcart" className="font-semibold underline">Sign In</Link>
+              : <button type="button" className="font-semibold underline" onClick={() => { setActionError(""); void refreshCart(); }}>Refresh cart</button>}
+          </div>
+        )}
+        <div className="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_21rem]">
+          <ul className="divide-y divide-brand-border rounded-2xl border border-brand-border bg-white px-4 sm:px-6">
             {cartItems.map((item) => {
-              const product = item.product;
-              const price = item.quotedUnitPriceInPaise ? item.quotedUnitPriceInPaise / 100 : (product.priceInPaise ? product.priceInPaise / 100 : product.price);
-              const lineTotal = item.quotedTotalInPaise ? item.quotedTotalInPaise / 100 : price * item.quantity;
-              const images = product.images || ["/images/products/garam-masala.png"];
-              const displayWeight = item.selectionType === "LOOSE" ? formatWeightGrams(item.requestedWeightGrams) : formatWeightText(item.packingWeight);
-              const displayRate = item.selectionType === "LOOSE" ? formatRate(item.quotedUnitPriceInPaise || 0, looseRateUnit(product.loosePricingRules, item.requestedWeightGrams) || "KILOGRAM") : formatRate(price * 100, "PACK");
-              
+              const { product } = item;
+              const description = cartItemDescription(item);
               return (
-                <li key={item.id} className="flex py-6">
-                  <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl border border-brand-gold/20 bg-brand-cream/30 p-2 relative">
-                    <Image
-                      src={images[0]}
-                      alt={product.name}
-                      fill
-                      className="object-contain"
-                    />
+                <li key={item.id} className="flex gap-3 py-4 sm:gap-4 sm:py-6">
+                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-brand-cream/40 sm:h-24 sm:w-24">
+                    <Image src={product.images?.[0] || "/images/products/garam-masala.png"} alt="" fill sizes="(max-width: 640px) 64px, 96px" className="object-contain" />
                   </div>
-
-                  <div className="ml-4 flex flex-1 flex-col">
-                    <div>
-                      <div className="flex justify-between text-base font-medium text-brand-dark">
-                        <h3>
-                          <Link href={product.isGeneralStore ? `/general-store/${product.slug}` : `/products/${product.slug}`} className="hover:text-brand-maroon">
-                            {product.name}
-                          </Link>
-                        </h3>
-                        <p className="ml-4 font-bold text-brand-maroon">₹{lineTotal.toFixed(2)}</p>
-                      </div>
-                      <p className="mt-1 text-sm text-brand-gray">
-                        {item.selectionType === "LOOSE" ? `Loose ${displayWeight}` : `${item.packingLabel || "Default packing"}${displayWeight ? ` · ${displayWeight}` : ""}`} · {displayRate}
-                      </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex justify-between gap-2">
+                      <Link href={`/general-store/${product.slug}`} className="font-semibold text-brand-dark hover:text-brand-maroon">{product.name}</Link>
+                      {item.quotedTotalInPaise !== null && <p className="shrink-0 font-semibold text-brand-maroon tabular-nums">{formatPaise(item.quotedTotalInPaise)}</p>}
                     </div>
-                    <div className="flex flex-1 items-end justify-between text-sm">
-                      <div className="flex items-center border border-brand-border rounded-lg bg-white">
-                        <button
-                          onClick={() => item.quantity <= 1 ? removeItem(item.id) : updateQuantity(item.id, item.quantity - 1)}
-                          className="px-3 py-1 text-brand-gray hover:text-brand-maroon hover:bg-brand-cream transition-colors rounded-l-lg"
-                        >
-                          -
-                        </button>
-                        <span className="px-3 font-semibold min-w-[2rem] text-center">{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="px-3 py-1 text-brand-gray hover:text-brand-maroon hover:bg-brand-cream transition-colors rounded-r-lg"
-                        >
-                          +
-                        </button>
+                    <p className="mt-1 text-sm text-brand-gray">{description}{item.quotedUnitPriceInPaise !== null && ` · ${formatRate(item.quotedUnitPriceInPaise, item.pricingUnit)}`}</p>
+                    {item.quoteError && <p className="mt-1 text-sm font-medium text-red-700">{item.quoteError}</p>}
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm">
+                      <div className="inline-flex items-center rounded-lg border border-brand-border">
+                        <button type="button" aria-label={`Decrease quantity of ${product.name} (${description})`} disabled={Boolean(error)}
+                          onClick={() => void update(() => changeQuantity(item.id, -1))}
+                          className="min-h-10 px-3 hover:bg-brand-cream disabled:opacity-50">−</button>
+                        <span className="min-w-8 px-2 text-center font-semibold tabular-nums">{item.quantity}</span>
+                        <button type="button" aria-label={`Increase quantity of ${product.name} (${description})`} disabled={Boolean(error || item.quoteError)}
+                          onClick={() => void update(() => changeQuantity(item.id, 1))}
+                          className="min-h-10 px-3 hover:bg-brand-cream disabled:opacity-50">+</button>
                       </div>
-
-                      <div className="flex">
-                        <button
-                          type="button"
-                          onClick={() => removeItem(item.id)}
-                          className="font-medium text-red-500 hover:text-red-700 transition-colors"
-                        >
-                          Remove
-                        </button>
-                      </div>
+                      <button type="button" aria-label={`Remove ${product.name} (${description})`} onClick={() => void update(() => removeItem(item.id))}
+                        className="min-h-10 font-medium text-red-700 hover:underline">Remove</button>
                     </div>
                   </div>
                 </li>
               );
             })}
           </ul>
-        </div>
-
-        <div className="lg:col-span-4 mt-8 lg:mt-0">
-          <div className="bg-brand-cream/30 rounded-2xl p-6 sm:p-8 border border-brand-gold/20 sticky top-28">
-            <h2 className="text-lg font-heading font-bold text-brand-dark mb-4">Order Summary</h2>
-            
-            <div className="flow-root">
-              <dl className="-my-4 divide-y divide-brand-border/50 text-sm">
-                <div className="flex items-center justify-between py-4">
-                  <dt className="text-brand-gray">Subtotal</dt>
-                  <dd className="font-medium text-brand-dark">₹{totalInPaise / 100}</dd>
-                </div>
-                <div className="flex items-center justify-between py-4">
-                  <dt className="text-brand-gray">Tax</dt>
-                  <dd className="font-medium text-brand-dark">Included</dd>
-                </div>
-                <div className="flex items-center justify-between py-4 text-base font-bold text-brand-dark">
-                  <dt>Order Total</dt>
-                  <dd className="text-brand-maroon text-xl">₹{totalInPaise / 100}</dd>
-                </div>
-              </dl>
+          <section className="rounded-2xl border border-brand-border bg-white p-5 lg:sticky lg:top-28 sm:p-6" aria-labelledby="cart-total">
+            <h2 id="cart-total" className="font-heading text-xl font-bold text-brand-dark">Order Summary</h2>
+            <div className="my-4 flex flex-wrap items-baseline justify-between gap-x-3 border-y border-brand-border py-4">
+              <p className="font-semibold text-brand-dark">Total <span className="text-xs font-normal text-brand-gray">Tax included</span></p>
+              <span className="text-xl font-bold text-brand-maroon tabular-nums">{hasUnavailableItems || !cartItems.length ? "—" : formatPaise(totalInPaise)}</span>
             </div>
-
-            <div className="mt-8">
-              <Link
-                href="/checkout"
-                className="w-full flex items-center justify-center rounded-full bg-brand-maroon px-4 py-4 text-base font-bold text-white shadow-lg hover:bg-brand-maroon-dark hover:-translate-y-0.5 transition-all"
-              >
-                Proceed to Checkout
-              </Link>
-            </div>
-          </div>
+            {hasUnavailableItems && <p className="mb-3 text-sm text-red-700">Update or remove unavailable items to continue.</p>}
+            {updating && <p role="status" className="mb-3 text-sm text-brand-gray">Updating cart…</p>}
+            {error || updating || hasUnavailableItems || !cartItems.length ? (
+              <button type="button" disabled className={actionClass}>Proceed to Checkout</button>
+            ) : (
+              <Link href="/checkout" className={actionClass}>Proceed to Checkout</Link>
+            )}
+          </section>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

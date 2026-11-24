@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Toast from "@/components/shared/Toast";
-import { formatRate, formatWeightGrams, formatWeightText } from "@/lib/general-store-display";
+import { basePriceInPaise, formatRate, formatWeightGrams, formatWeightText, looseUnitTotalInPaise } from "@/lib/general-store-display";
 import { authClient } from "@/lib/auth-client";
 import { isOwnerRole, isStaffRole } from "@/lib/admin-roles";
 
@@ -103,6 +103,8 @@ function packingWeightGrams(packing: { weight?: string; weightGrams?: number }) 
 
 function requestedTotalWeight(item: OrderItem) {
   if (item.selectionType === "LOOSE") return (item.requestedWeightGrams || 0) * item.requestedQuantity;
+  const orderWeight = parseWeightGrams(item.packingWeight);
+  if (orderWeight) return orderWeight * item.requestedQuantity;
   const packing = item.product?.packagingSizes?.find((candidate) => candidate.label === item.packingLabel);
   return packing ? packingWeightGrams(packing) * item.requestedQuantity : 0;
 }
@@ -117,18 +119,6 @@ function fulfillmentDefaults(item: OrderItem, current?: FulfillmentOption) {
     totalWeightGrams,
     note: current?.note || item.fulfillmentNote || "",
   } satisfies FulfillmentOption;
-}
-
-function previewAcceptedTotal(item: OrderItem, option: FulfillmentOption, selectedPacking: { priceInPaise?: number; weight?: string; weightGrams?: number } | undefined, selectedWeight: number, derivedQuantity: number | null) {
-  if (!option.totalWeightGrams) return item.totalPriceInPaise;
-  if (option.selectionType === "LOOSE") {
-    const rule = item.product?.loosePricingRules?.find((candidate) => option.totalWeightGrams >= candidate.minWeightGrams && (candidate.maxWeightGrams == null || option.totalWeightGrams <= candidate.maxWeightGrams));
-    if (!rule) return item.totalPriceInPaise;
-    return rule.rateUnit === "KILOGRAM" ? Math.round(rule.rateInPaise * option.totalWeightGrams / 1000) : rule.rateInPaise * option.totalWeightGrams;
-  }
-  if (!selectedPacking || !selectedWeight || !derivedQuantity) return item.totalPriceInPaise;
-  const unitPrice = selectedPacking.priceInPaise ?? item.product?.priceInPaise ?? (item.product?.price || 0) * 100;
-  return unitPrice * derivedQuantity;
 }
 
 function OrderSummary({ order }: { order: Order }) {
@@ -252,7 +242,7 @@ export default function AdminOrders() {
         id: item.id,
         quantity: selected.has(item.id) ? 1 : 0,
         acceptedSelectionType: selected.has(item.id) ? option.selectionType : undefined,
-        acceptedTotalWeightGrams: selected.has(item.id) ? option.totalWeightGrams : undefined,
+        acceptedTotalWeightGrams: selected.has(item.id) ? option.totalWeightGrams || undefined : undefined,
         acceptedPackingLabel: selected.has(item.id) ? option.label : undefined,
         acceptedPackingWeight: selected.has(item.id) ? option.weight : undefined,
         fulfillmentNote: selected.has(item.id) ? option.note : undefined,
@@ -628,11 +618,18 @@ export default function AdminOrders() {
                         {order.items.map((item) => {
                           const option = fulfillmentDefaults(item, fulfillmentOptions[order.id]?.[item.id]);
                           const availablePackings = (item.product?.packagingSizes || []).filter((packing) => packing.label && packing.availability !== "UNAVAILABLE");
-                          const chosenPacking = availablePackings.find((packing) => packing.label === option.label);
+                          const matchingPackings = availablePackings.filter((packing) => packing.label === option.label);
+                          const chosenPacking = matchingPackings.find((packing) => packing.weight === option.weight)
+                            ?? (matchingPackings.length === 1 ? matchingPackings[0] : undefined);
                           const chosenWeight = option.selectionType === "PACKED" ? packingWeightGrams(chosenPacking || {}) : 0;
                           const derivedQuantity = option.selectionType === "PACKED" && chosenWeight && option.totalWeightGrams % chosenWeight === 0 ? option.totalWeightGrams / chosenWeight : null;
-                          const looseQuantity = option.selectionType === "LOOSE" && item.requestedWeightGrams && option.totalWeightGrams % item.requestedWeightGrams === 0 ? option.totalWeightGrams / item.requestedWeightGrams : null;
-                          const previewTotalInPaise = previewAcceptedTotal(item, option, chosenPacking, chosenWeight, derivedQuantity);
+                          const looseUnitGrams = requestedTotalWeight(item) / item.requestedQuantity;
+                          const looseQuantity = option.selectionType === "LOOSE" && looseUnitGrams > 0 && option.totalWeightGrams % looseUnitGrams === 0
+                            ? option.totalWeightGrams / looseUnitGrams : null;
+                          const looseRule = item.product?.loosePricingRules?.find((rule) => looseUnitGrams >= rule.minWeightGrams && (rule.maxWeightGrams == null || looseUnitGrams <= rule.maxWeightGrams));
+                          let previewTotalInPaise = item.totalPriceInPaise;
+                          if (looseRule && looseQuantity) previewTotalInPaise = looseUnitTotalInPaise(looseRule.rateInPaise, looseRule.rateUnit, looseUnitGrams) * looseQuantity;
+                          if (chosenPacking && derivedQuantity) previewTotalInPaise = (chosenPacking.priceInPaise ?? basePriceInPaise(item.product ?? {})) * derivedQuantity;
                           const editable = order.status === "PENDING" || order.status === "PARTIALLY_ACCEPTED";
                           return <label key={item.id} className="grid gap-3 rounded-xl border border-gray-200 bg-white p-3 text-sm shadow-sm sm:grid-cols-[auto_minmax(0,1fr)_auto]">
                             <input
@@ -645,18 +642,40 @@ export default function AdminOrders() {
                             <span className="min-w-0">
                               <span className="block font-semibold text-gray-900">{item.productName}</span>
                               <span className="mt-1 block text-xs text-gray-500">Requested: {item.selectionType === "LOOSE" ? `Loose ${formatWeightGrams(item.requestedWeightGrams)}` : `${item.packingLabel || "Default"}${item.packingWeight ? ` · ${formatWeightText(item.packingWeight)}` : ""}`} · {item.requestedQuantity} unit{item.requestedQuantity === 1 ? "" : "s"} · {formatRate(item.unitPriceInPaise, item.selectionType === "LOOSE" ? (item.pricingUnit || "KILOGRAM") : "PACK")}</span>
-                              <span className="mt-3 grid gap-2 sm:grid-cols-2">
+                              {item.selectionType === "PACKED" && !requestedTotalWeight(item) ? (
+                                <span className="mt-3 block text-xs text-gray-600">Prepare the original quantity of {item.requestedQuantity} packs.</span>
+                              ) : <span className="mt-3 grid gap-2 sm:grid-cols-2">
                                 <span><span className="mb-1 block text-[11px] font-semibold text-gray-500">Serve as</span>
-                                  <select aria-label={`Serve option for ${item.productName}`} value={`${option.selectionType}:${option.label}`} disabled={!editable || !selectedItemsFor(order).includes(item.id)} onChange={(event) => { const [type, ...labelParts] = event.target.value.split(":"); const label = labelParts.join(":"); const packing = availablePackings.find((candidate) => candidate.label === label); updateFulfillmentSelection(order.id, item.id, type as "PACKED" | "LOOSE", label, type === "LOOSE" ? `${option.totalWeightGrams}g` : packing?.weight || ""); }} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"><optgroup label="Available packings">{availablePackings.map((packing) => <option key={packing.label} value={`PACKED:${packing.label}`}>{packing.label} · {formatWeightText(packing.weight)}</option>)}</optgroup>{item.product?.allowLooseQuantity && <option value="LOOSE:Loose quantity">Loose quantity</option>}</select>
+                                  <select aria-label={`Serve option for ${item.productName}`}
+                                    value={option.selectionType === "LOOSE" ? "loose" : chosenPacking ? JSON.stringify([chosenPacking.label, chosenPacking.weight]) : ""}
+                                    disabled={!editable || !selectedItemsFor(order).includes(item.id)}
+                                    onChange={(event) => {
+                                      if (event.target.value === "loose") {
+                                        updateFulfillmentSelection(order.id, item.id, "LOOSE", "Loose quantity", `${option.totalWeightGrams}g`);
+                                      } else {
+                                        const [label, weight] = JSON.parse(event.target.value) as [string, string | null];
+                                        updateFulfillmentSelection(order.id, item.id, "PACKED", label, weight ?? "");
+                                      }
+                                    }}
+                                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm">
+                                    <option value="" disabled>Choose a packing</option>
+                                    <optgroup label="Available packings">
+                                      {availablePackings.map((packing) => {
+                                        const key = JSON.stringify([packing.label, packing.weight]);
+                                        return <option key={key} value={key}>{packing.label} · {formatWeightText(packing.weight)}</option>;
+                                      })}
+                                    </optgroup>
+                                    {item.product?.allowLooseQuantity && <option value="loose">Loose quantity</option>}
+                                  </select>
                                 </span>
                                 <span><span className="mb-1 block text-[11px] font-semibold text-gray-500">Total weight to prepare (g)</span>
                                   <input aria-label={`Total weight for ${item.productName}`} type="number" min="1" max={requestedTotalWeight(item) || 1000000} value={option.totalWeightGrams || ""} disabled={!editable || !selectedItemsFor(order).includes(item.id)} onChange={(event) => { const totalWeightGrams = Math.min(requestedTotalWeight(item) || 1000000, Math.max(1, Number(event.target.value) || 1)); setFulfillmentOptions((current) => ({ ...current, [order.id]: { ...current[order.id], [item.id]: { ...option, totalWeightGrams, weight: option.selectionType === "LOOSE" ? `${totalWeightGrams}g` : option.weight } } })); }} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
                                 </span>
-                                <span className="rounded-lg bg-brand-cream/40 px-3 py-2 text-xs text-gray-600 sm:col-span-2">{option.selectionType === "PACKED" ? (derivedQuantity ? `System will prepare ${derivedQuantity} × ${formatWeightGrams(chosenWeight)} pack${derivedQuantity === 1 ? "" : "s"}.` : "Choose a packing whose weight divides the total exactly.") : looseQuantity ? `System will prepare ${looseQuantity} × ${formatWeightGrams(item.requestedWeightGrams)} loose unit${looseQuantity === 1 ? "" : "s"}.` : "Choose a total weight that divides into whole loose units."}</span>
+                                <span className="rounded-lg bg-brand-cream/40 px-3 py-2 text-xs text-gray-600 sm:col-span-2">{option.selectionType === "PACKED" ? (derivedQuantity ? `System will prepare ${derivedQuantity} × ${formatWeightGrams(chosenWeight)} pack${derivedQuantity === 1 ? "" : "s"}.` : "Choose a packing whose weight divides the total exactly.") : looseQuantity ? `System will prepare ${looseQuantity} × ${formatWeightGrams(looseUnitGrams)} loose unit${looseQuantity === 1 ? "" : "s"}.` : "Choose a total weight that divides into whole loose units."}</span>
                                 <span className="sm:col-span-2"><span className="mb-1 block text-[11px] font-semibold text-gray-500">Note to customer (optional) · ગ્રાહક માટે નોંધ (વૈકલ્પિક)</span>
                                   <input aria-label={`Customer note for ${item.productName}`} type="text" value={option.note} disabled={!editable || !selectedItemsFor(order).includes(item.id)} onChange={(event) => updateFulfillmentOption(order.id, item.id, "note", event.target.value)} placeholder="Explain a substitution, shortage, or packing change" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
                                 </span>
-                              </span>
+                              </span>}
                             </span>
                             <span className="text-right sm:min-w-[96px]"><span className="block font-bold text-brand-maroon">₹{(previewTotalInPaise / 100).toFixed(2)}</span>{previewTotalInPaise !== item.totalPriceInPaise && <span className="mt-1 block text-[10px] text-gray-400">was ₹{(item.totalPriceInPaise / 100).toFixed(2)}</span>}</span>
                           </label>

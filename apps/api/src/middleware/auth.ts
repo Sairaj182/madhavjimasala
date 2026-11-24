@@ -19,12 +19,6 @@ export async function requireAuth(
       headers: webHeaders,
     });
 
-    request.log.info({
-      cookieHeader: request.headers.cookie,
-      hasSession: !!session,
-      userId: session?.user?.id,
-    }, '[requireAuth] session verification result');
-
     if (!session || !session.user) {
       return reply.status(401).send({ error: "Unauthorized" });
     }
@@ -32,8 +26,8 @@ export async function requireAuth(
     // Attach user and session to request
     (request as any).user = session.user;
     (request as any).session = session.session;
-  } catch (error: any) {
-    request.log.error(error, '[requireAuth] error verifying session');
+  } catch {
+    request.log.error("Could not verify session");
     return reply.status(401).send({ error: "Unauthorized" });
   }
 }

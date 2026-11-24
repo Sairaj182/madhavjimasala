@@ -17,9 +17,10 @@ export default function LoginPage() {
 
   const getRedirectPath = () => {
     const requestedPath = new URLSearchParams(window.location.search).get("callbackUrl");
-    return requestedPath && requestedPath.startsWith("/") && !requestedPath.startsWith("//")
-      ? requestedPath
-      : "/products";
+    if (!requestedPath?.startsWith("/")) return "/products";
+    const target = new URL(requestedPath, window.location.origin);
+    if (target.origin !== window.location.origin || target.pathname.startsWith("//")) return "/products";
+    return target.pathname + target.search + target.hash;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

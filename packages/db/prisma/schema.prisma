@@ -299,6 +299,9 @@ model Order {
   updatedAt DateTime @updatedAt
 
   items OrderItem[]
+
+  @@index([pickupSlotId, status])
+  @@index([userId, createdAt])
 }
 
 model OrderItem {

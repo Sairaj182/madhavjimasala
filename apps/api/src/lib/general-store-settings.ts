@@ -22,8 +22,8 @@ export const defaultGeneralStoreControls: GeneralStoreControls = {
   generalStoreMaintenanceMessage: "General Store ordering is temporarily unavailable.",
 };
 
-export async function getGeneralStoreControls(): Promise<GeneralStoreControls> {
-  const rows = await prisma.$queryRaw<GeneralStoreControls[]>`
+export async function getGeneralStoreControls(db: Pick<typeof prisma, "$queryRaw"> = prisma): Promise<GeneralStoreControls> {
+  const rows = await db.$queryRaw<GeneralStoreControls[]>`
     SELECT "generalStoreEnabled", "generalStoreCatalogueOpen", "generalStoreCartOpen",
       "generalStoreCheckoutOpen", "generalStoreOrdersOpen", "generalStorePickupOpen",
       "generalStoreNotificationsOpen", "generalStoreMaintenanceMessage"

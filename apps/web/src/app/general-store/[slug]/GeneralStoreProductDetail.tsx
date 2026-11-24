@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/contexts/CartContext";
-import { formatLooseRatePerKg } from "@/lib/general-store-display";
+import { basePriceInPaise, formatLooseRatePerKg, formatPaise, looseUnitTotalInPaise } from "@/lib/general-store-display";
 
 type Packing = { label: string; weight: string; weightGrams?: number; priceInPaise?: number; availability?: string; minQuantity?: number; maxQuantity?: number };
 type GeneralStoreProduct = {
@@ -20,7 +20,7 @@ type GeneralStoreProduct = {
   loosePricingRules?: Array<{ minWeightGrams: number; maxWeightGrams?: number | null; rateInPaise: number; rateUnit: "GRAM" | "KILOGRAM" }>;
 };
 
-const DEFAULT_PACKING: Packing = { label: "Standard pack", weight: "1 unit" };
+const DEFAULT_PACKING: Packing = { label: "default", weight: "1 unit" };
 
 function getPackings(value: unknown): Packing[] {
   if (!Array.isArray(value)) return [DEFAULT_PACKING];
@@ -48,26 +48,94 @@ function formatWeight(grams: number) {
 export default function GeneralStoreProductDetail({ product }: { product: GeneralStoreProduct }) {
   const { addToCart, loading } = useCart();
   const packings = getPackings(product.packagingSizes);
+  const firstAvailable = Math.max(0, packings.findIndex((packing) => packing.availability !== "UNAVAILABLE"));
   const images = getImages(product.images);
-  const [selectedPacking, setSelectedPacking] = useState(0);
+  const [selectedPacking, setSelectedPacking] = useState(firstAvailable);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(packings[firstAvailable].minQuantity ?? 1);
+  const [quantityInput, setQuantityInput] = useState(String(packings[firstAvailable].minQuantity ?? 1));
   const [looseWeightGrams, setLooseWeightGrams] = useState(() => supportsLooseWeight(product.loosePricingRules, 100) ? 100 : product.loosePricingRules?.[0]?.minWeightGrams || 100);
   const [looseUnit, setLooseUnit] = useState<"GRAMS" | "KILOGRAMS">("GRAMS");
+  const [looseWeightInput, setLooseWeightInput] = useState(() => String(supportsLooseWeight(product.loosePricingRules, 100) ? 100 : product.loosePricingRules?.[0]?.minWeightGrams || 100));
   const [selectionType, setSelectionType] = useState<"PACKED" | "LOOSE">("PACKED");
-  const [feedback, setFeedback] = useState("");
+  const [feedback, setFeedback] = useState<{ text: string; success: boolean }>();
+  const [adding, setAdding] = useState(false);
+  const addingRef = useRef(false);
+  const draftKey = `general-store-selection:${product.id}`;
   const selected = packings[selectedPacking];
   const looseRule = product.loosePricingRules?.find((rule) => looseWeightGrams >= rule.minWeightGrams && (rule.maxWeightGrams == null || looseWeightGrams <= rule.maxWeightGrams));
-  const unitPrice = selectionType === "LOOSE" ? (looseRule ? (looseRule.rateUnit === "KILOGRAM" ? looseRule.rateInPaise * looseWeightGrams / 1000 : looseRule.rateInPaise * looseWeightGrams) / 100 : 0) : (selected.priceInPaise || product.priceInPaise || product.price * 100) / 100;
-  const isUnavailable = selected.availability === "UNAVAILABLE";
+  const isLoose = selectionType === "LOOSE";
+  const unitPrice = isLoose
+    ? (looseRule ? looseUnitTotalInPaise(looseRule.rateInPaise, looseRule.rateUnit, looseWeightGrams) : null)
+    : selected.priceInPaise ?? basePriceInPaise(product);
+  const minimum = isLoose ? 1 : selected.minQuantity ?? 1;
+  const maximum = isLoose ? 100000 : selected.maxQuantity ?? 100000;
+  const isUnavailable = isLoose ? unitPrice === null : selected.availability === "UNAVAILABLE";
+  const looseInputGrams = looseUnit === "GRAMS" ? Number(looseWeightInput) : Number(looseWeightInput) * 1000;
+  const quantityValid = quantityInput !== "" && Number.isSafeInteger(Number(quantityInput))
+    && Number(quantityInput) >= minimum && Number(quantityInput) <= maximum;
+  const looseWeightValid = !isLoose || (looseWeightInput !== "" && Number.isSafeInteger(looseInputGrams)
+    && looseInputGrams >= 1 && looseInputGrams <= 1000000);
   const looseWeightOptions = [10, 50, 100, 150, 250, 500, 1000, 1500, 2000, 2500, 5000, 10000]
     .filter((grams) => supportsLooseWeight(product.loosePricingRules, grams));
-  const looseInputValue = looseUnit === "GRAMS" ? looseWeightGrams : looseWeightGrams / 1000;
-  const updateLooseInput = (value: number) => {
-    const grams = looseUnit === "GRAMS" ? value : value * 1000;
-    setLooseWeightGrams(Math.max(1, Math.min(1000000, Number.isFinite(grams) ? grams : 1)));
+  const updateLooseInput = (value: string) => {
+    setLooseWeightInput(value);
+    if (!value) return;
+    const entered = Number(value);
+    if (!Number.isFinite(entered) || entered <= 0) return;
+    const grams = looseUnit === "GRAMS" ? entered : entered * 1000;
+    if (Number.isSafeInteger(grams) && grams <= 1000000) setLooseWeightGrams(grams);
   };
-  const totalPrice = unitPrice * quantity;
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(draftKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      const storedPackings = getPackings(product.packagingSizes);
+      const index = storedPackings.findIndex((packing) => packing.label === draft.label && packing.weight === draft.weight);
+      if (draft.selectionType === "LOOSE" && product.allowLooseQuantity && Number.isSafeInteger(draft.grams)) {
+        setSelectionType("LOOSE");
+        setLooseWeightGrams(Math.max(1, Math.min(1000000, draft.grams)));
+        setLooseWeightInput(String(Math.max(1, Math.min(1000000, draft.grams))));
+        if (Number.isSafeInteger(draft.quantity)) setQuantity(Math.max(1, Math.min(100000, draft.quantity)));
+      } else if (index >= 0) {
+        setSelectedPacking(index);
+        const packing = storedPackings[index];
+        if (Number.isSafeInteger(draft.quantity)) {
+          const restoredQuantity = Math.max(packing.minQuantity ?? 1, Math.min(packing.maxQuantity ?? 100000, draft.quantity));
+          setQuantity(restoredQuantity);
+          setQuantityInput(String(restoredQuantity));
+        }
+      }
+    } catch {
+      // Selection is still available when tab storage is disabled.
+    }
+  }, [draftKey, product.allowLooseQuantity, product.packagingSizes]);
+
+  async function addSelection() {
+    if (addingRef.current || loading || isUnavailable || !quantityInput || !Number.isSafeInteger(Number(quantityInput))
+      || Number(quantityInput) < minimum || Number(quantityInput) > maximum
+      || (isLoose && (!looseWeightInput || !Number.isSafeInteger(looseUnit === "GRAMS" ? Number(looseWeightInput) : Number(looseWeightInput) * 1000)))) return;
+    setFeedback(undefined);
+    setAdding(true);
+    addingRef.current = true;
+    try {
+      try {
+        sessionStorage.setItem(draftKey, JSON.stringify({ selectionType, label: selected.label, weight: selected.weight, grams: looseWeightGrams, quantity }));
+      } catch {}
+      const added = await addToCart(product.id, quantity, selected.label, selected.weight, selectionType, isLoose ? looseWeightGrams : undefined);
+      if (added) {
+        try { sessionStorage.removeItem(draftKey); } catch {}
+        setFeedback({ text: "Added to cart.", success: true });
+      }
+    } catch (error) {
+      setFeedback({ text: error instanceof Error ? error.message : "Unable to add this item. Please try again.", success: false });
+    } finally {
+      addingRef.current = false;
+      setAdding(false);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-brand-cream/30 py-10 sm:py-14">
@@ -97,35 +165,79 @@ export default function GeneralStoreProductDetail({ product }: { product: Genera
             <h1 className="mt-3 font-heading text-3xl font-bold text-brand-maroon sm:text-4xl">{product.name}</h1>
             <p className="mt-3 text-sm text-brand-gray">{product.shortDescription || product.description || "A quality everyday product available for store pickup."}</p>
             <p className="mt-2 text-sm text-brand-gray">સ્ટોર પરથી પિકઅપ માટે ઉપલબ્ધ ગુણવત્તાવાળી દૈનિક જરૂરિયાતની વસ્તુ.</p>
-            <p className="mt-6 text-2xl font-bold text-brand-dark">₹{unitPrice.toFixed(2)} <span className="text-sm font-normal text-brand-gray">{selectionType === "LOOSE" ? `for ${formatWeight(looseWeightGrams)}` : "per pack"}</span></p>
+            <p className="mt-6 text-2xl font-bold text-brand-dark">{unitPrice === null ? "Price unavailable" : formatPaise(unitPrice)}{unitPrice !== null && <span className="ml-2 text-sm font-normal text-brand-gray">{isLoose ? `for ${formatWeight(looseWeightGrams)}` : "per pack"}</span>}</p>
             {product.description && product.shortDescription && <p className="mt-4 leading-relaxed text-brand-gray">{product.description}</p>}
 
             <div className="mt-8">
               <p className="text-sm font-semibold text-brand-dark">Choose how you want it</p>
-              <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => setSelectionType("PACKED")} className={`rounded-full px-4 py-2 text-sm font-semibold ${selectionType === "PACKED" ? "bg-brand-maroon text-white" : "border border-brand-gold/40"}`}>Pre-packed</button>{product.allowLooseQuantity && <button type="button" onClick={() => setSelectionType("LOOSE")} className={`rounded-full px-4 py-2 text-sm font-semibold ${selectionType === "LOOSE" ? "bg-brand-maroon text-white" : "border border-brand-gold/40"}`}>Loose quantity</button>}</div>
-              {selectionType === "PACKED" && <>
-              <p className="mt-5 text-sm font-semibold text-brand-dark">Packing / weight</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {packings.map((packing, index) => (
-                  <button key={`${packing.label}-${packing.weight}`} type="button" disabled={packing.availability === "UNAVAILABLE"} onClick={() => { setSelectedPacking(index); setQuantity(packing.minQuantity || 1); }} className={`rounded-full px-4 py-2 text-sm font-semibold ${selectedPacking === index ? "bg-brand-maroon text-white" : "border border-brand-gold/40 bg-white text-brand-dark hover:border-brand-maroon"} disabled:cursor-not-allowed disabled:opacity-40`}>
-                    {packing.label} {packing.availability === "UNAVAILABLE" ? "(unavailable)" : ""}
-                  </button>
-                ))}
+                <button type="button" aria-pressed={!isLoose} onClick={() => {
+                  if (isLoose) { setSelectionType("PACKED"); setQuantity(selected.minQuantity ?? 1); setQuantityInput(String(selected.minQuantity ?? 1)); }
+                }} className={`rounded-full px-4 py-2 text-sm font-semibold ${!isLoose ? "bg-brand-maroon text-white" : "border border-brand-gold/40 bg-white text-brand-dark"}`}>Pre-packed</button>
+                {product.allowLooseQuantity && <button type="button" aria-pressed={isLoose} onClick={() => {
+                  if (!isLoose) { setSelectionType("LOOSE"); setQuantity(1); setQuantityInput("1"); }
+                }} className={`rounded-full px-4 py-2 text-sm font-semibold ${isLoose ? "bg-brand-maroon text-white" : "border border-brand-gold/40 bg-white text-brand-dark"}`}>Loose quantity</button>}
               </div>
-              </>}
-              {selectionType === "LOOSE" && <div className="mt-4 rounded-2xl border border-brand-gold/30 bg-brand-cream/20 p-4"><p className="text-sm font-semibold text-brand-dark">How much would you like?</p><p className="mt-1 text-xs text-brand-gray">Choose a usual quantity or enter your own amount.</p><div className="mt-3 flex flex-wrap gap-2">{looseWeightOptions.map((grams) => <button key={grams} type="button" onClick={() => setLooseWeightGrams(grams)} className={`rounded-full px-3 py-2 text-sm font-semibold ${looseWeightGrams === grams ? "bg-brand-maroon text-white" : "border border-brand-gold/40 bg-white text-brand-dark hover:border-brand-maroon"}`}>{formatWeight(grams)}</button>)}</div><label htmlFor="loose-quantity" className="mt-4 block text-xs font-semibold uppercase tracking-wide text-brand-gray">Enter exact quantity</label><div className="mt-1 flex flex-wrap items-center gap-2"><input id="loose-quantity" type="number" min={looseUnit === "GRAMS" ? 1 : 0.001} max={looseUnit === "GRAMS" ? 1000000 : 1000} step={looseUnit === "GRAMS" ? 1 : 0.01} value={looseInputValue} onChange={(event) => updateLooseInput(Number(event.target.value))} className="w-36 rounded-lg border border-brand-border px-3 py-2" /><div className="flex rounded-lg border border-brand-border bg-white p-1" role="group" aria-label="Loose quantity unit"><button type="button" onClick={() => setLooseUnit("GRAMS")} className={`rounded-md px-3 py-2 text-xs font-bold ${looseUnit === "GRAMS" ? "bg-brand-maroon text-white" : "text-brand-gray"}`}>grams</button><button type="button" onClick={() => setLooseUnit("KILOGRAMS")} className={`rounded-md px-3 py-2 text-xs font-bold ${looseUnit === "KILOGRAMS" ? "bg-brand-maroon text-white" : "text-brand-gray"}`}>kg</button></div></div><p className="mt-2 text-xs text-brand-gray">{looseRule ? `${formatLooseRatePerKg(looseRule.rateInPaise, looseRule.rateUnit)} · Your amount: ₹${unitPrice.toFixed(2)}` : "This amount is not currently available. Try one of the suggested amounts."}</p></div>}
+              {!isLoose ? (
+                <>
+                  <p className="mt-5 text-sm font-semibold text-brand-dark">Packing / weight</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {packings.map((packing, index) => (
+                      <button key={`${packing.label}-${packing.weight}`} type="button" aria-pressed={selectedPacking === index} disabled={packing.availability === "UNAVAILABLE"}
+                        onClick={() => { setSelectedPacking(index); setQuantity(packing.minQuantity ?? 1); setQuantityInput(String(packing.minQuantity ?? 1)); }}
+                        className={`rounded-full px-4 py-2 text-sm font-semibold ${selectedPacking === index ? "bg-brand-maroon text-white" : "border border-brand-gold/40 bg-white text-brand-dark"} disabled:opacity-40`}>
+                        {packing.label === "default" ? "Standard pack" : packing.label}{packings.some((other, otherIndex) => otherIndex !== index && other.label === packing.label) && ` · ${packing.weight}`}
+                        {packing.availability === "UNAVAILABLE" && " (unavailable)"}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="mt-4 rounded-2xl border border-brand-gold/30 bg-brand-cream/20 p-4">
+                  <p className="text-sm font-semibold text-brand-dark">How much would you like?</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {looseWeightOptions.map((grams) => (
+                      <button key={grams} type="button" aria-pressed={looseWeightGrams === grams} onClick={() => setLooseWeightGrams(grams)}
+                        className={`rounded-full px-3 py-2 text-sm font-semibold ${looseWeightGrams === grams ? "bg-brand-maroon text-white" : "border border-brand-gold/40 bg-white text-brand-dark"}`}>{formatWeight(grams)}</button>
+                    ))}
+                  </div>
+                  <label htmlFor="loose-quantity" className="mt-4 block text-sm font-semibold text-brand-gray">Enter exact weight</label>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <input id="loose-quantity" type="number" min={looseUnit === "GRAMS" ? 1 : 0.001} max={looseUnit === "GRAMS" ? 1000000 : 1000}
+                      step={looseUnit === "GRAMS" ? 1 : 0.001} value={looseWeightInput} onChange={(event) => updateLooseInput(event.target.value)} className="w-32 rounded-lg border border-brand-border bg-white px-3 py-2" />
+                    <select aria-label="Loose quantity unit" value={looseUnit} onChange={(event) => { const unit = event.target.value === "GRAMS" ? "GRAMS" : "KILOGRAMS"; setLooseUnit(unit); setLooseWeightInput(String(unit === "GRAMS" ? looseWeightGrams : looseWeightGrams / 1000)); }}
+                      className="rounded-lg border border-brand-border bg-white p-2 text-sm">
+                      <option value="GRAMS">Grams</option>
+                      <option value="KILOGRAMS">Kilograms</option>
+                    </select>
+                  </div>
+                  <p className="mt-2 text-xs text-brand-gray">{looseRule ? formatLooseRatePerKg(looseRule.rateInPaise, looseRule.rateUnit) : "This weight is unavailable. Try one of the suggested amounts."}</p>
+                </div>
+              )}
             </div>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <label htmlFor="general-store-quantity" className="text-sm font-semibold text-brand-dark">{selectionType === "LOOSE" ? "Number of units" : "Quantity"}</label>
-              <input id="general-store-quantity" type="number" min={selected.minQuantity || 1} max={selected.maxQuantity || 100000} value={quantity} onChange={(event) => setQuantity(Math.min(selected.maxQuantity || 100000, Math.max(selected.minQuantity || 1, Number(event.target.value) || selected.minQuantity || 1)))} className="w-24 rounded-lg border border-brand-border px-3 py-2 text-center" />
-              <span className="text-sm text-brand-gray">{selectionType === "LOOSE" ? `${formatWeight(looseWeightGrams)} each · ` : ""}Total ₹{totalPrice.toFixed(2)}</span>
+              <label htmlFor="general-store-quantity" className="text-sm font-semibold text-brand-dark">{isLoose ? "Number of units" : "Quantity"}</label>
+              <input id="general-store-quantity" type="number" min={minimum} max={maximum} value={quantityInput}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setQuantityInput(value);
+                  if (!value) return;
+                  const entered = Number(value);
+                  if (Number.isSafeInteger(entered) && entered >= minimum && entered <= maximum) setQuantity(entered);
+                }}
+                className="w-24 rounded-lg border border-brand-border px-3 py-2 text-center" />
+              {unitPrice !== null && <span className="text-sm text-brand-gray">{isLoose && `${formatWeight(looseWeightGrams)} each · `}Total <strong className="text-brand-dark">{formatPaise(unitPrice * quantity)}</strong></span>}
             </div>
 
-            <button type="button" disabled={loading || isUnavailable || (selectionType === "LOOSE" && !looseRule)} onClick={async () => { const packing = packings[selectedPacking]; setFeedback(""); try { await addToCart(product.id, quantity, selectionType === "LOOSE" ? "Loose quantity" : packing.label, selectionType === "LOOSE" ? `${looseWeightGrams}g` : packing.weight, selectionType, selectionType === "LOOSE" ? looseWeightGrams : undefined); setFeedback("Added to cart. You can continue shopping or checkout."); } catch { setFeedback("Unable to add this item. Please try again."); } }} className="mt-8 rounded-full bg-brand-maroon px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-maroon-dark disabled:opacity-60">
-              {loading ? "Adding..." : "Add to Cart"}
+            <button type="button" disabled={loading || adding || isUnavailable || !quantityValid || !looseWeightValid}
+              onClick={() => void addSelection()}
+              className="mt-6 rounded-full bg-brand-maroon px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-maroon-dark disabled:opacity-60">
+              {adding ? "Adding…" : "Add to Cart"}
             </button>
-            {feedback && <p role="status" className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800">{feedback}</p>}
+            {feedback && (feedback.success ? (
+              <p role="status" className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800">{feedback.text} <Link href="/cart" className="font-semibold underline">View cart</Link></p>
+            ) : <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{feedback.text}</p>)}
             <p className="mt-3 text-xs text-brand-gray">Payment is collected in store when you pick up your order.</p>
             <p className="mt-1 text-xs text-brand-gray">ઓર્ડર લઈ જતી વખતે સ્ટોર પર જ ચુકવણી કરવાની રહેશે.</p>
           </div>

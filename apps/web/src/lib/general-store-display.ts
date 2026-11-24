@@ -1,4 +1,24 @@
-export type DisplayRateUnit = "GRAM" | "KILOGRAM" | "PACK" | string | undefined;
+import type { CartItem } from "@/contexts/CartContext";
+
+export type DisplayRateUnit = string | null | undefined;
+
+export function formatPaise(paise: number) {
+  return `₹${(paise / 100).toFixed(2)}`;
+}
+
+export function looseUnitTotalInPaise(rateInPaise: number, rateUnit: DisplayRateUnit, grams: number) {
+  return rateUnit === "KILOGRAM" ? Math.round(rateInPaise * grams / 1000) : rateInPaise * grams;
+}
+
+export function basePriceInPaise(product: { price?: number; priceInPaise?: number | null }) {
+  return product.priceInPaise && product.priceInPaise > 0 ? product.priceInPaise : (product.price ?? 0) * 100;
+}
+
+export function cartItemDescription(item: CartItem) {
+  if (item.selectionType === "LOOSE") return `Loose ${formatWeightGrams(item.requestedWeightGrams)}`;
+  const label = item.packingLabel === "default" ? "Standard pack" : item.packingLabel;
+  return [label, formatWeightText(item.packingWeight)].filter(Boolean).join(" · ");
+}
 
 export function formatWeightGrams(grams: number | null | undefined) {
   if (!grams || !Number.isFinite(grams)) return "";
