@@ -1,11 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { YEAR_OF_ESTABLISHMENT } from "@/lib/constants";
-
-const WORDMARK = "MADHAVJI MASALA";
-const LETTER_DELAY_MS = 78;
-const DATE_DELAY_MS = (WORDMARK.length - 1) * LETTER_DELAY_MS + 260;
 
 export default function LogoSplash() {
   const [phase, setPhase] = useState<
@@ -31,7 +28,7 @@ export default function LogoSplash() {
 
     // Phase timeline
     const revealTimer = setTimeout(() => setPhase("reveal"), 300);
-    const exitTimer = setTimeout(() => setPhase("exit"), 3300);
+    const exitTimer = setTimeout(() => setPhase("exit"), 3000);
 
     return () => {
       clearTimeout(revealTimer);
@@ -109,15 +106,15 @@ export default function LogoSplash() {
         ))}
       </div>
 
-      {/* Radial glow behind the wordmark */}
+      {/* Radial glow behind logo */}
       <div
         style={{
           position: "absolute",
-          width: 400,
-          height: 400,
+          width: 520,
+          height: 320,
           borderRadius: "50%",
           background:
-            "radial-gradient(circle, rgba(212, 160, 23, 0.15) 0%, rgba(139, 26, 26, 0.08) 40%, transparent 70%)",
+            "radial-gradient(ellipse, rgba(232, 197, 71, 0.18) 0%, rgba(139, 26, 26, 0.1) 46%, transparent 72%)",
           opacity: phase === "reveal" ? 1 : 0,
           transform: phase === "reveal" ? "scale(1)" : "scale(0.5)",
           transition:
@@ -126,31 +123,90 @@ export default function LogoSplash() {
         }}
       />
 
+      {/* Logo */}
       <div
-        className="relative w-full px-4 text-center font-heading"
-        data-splash-revealing={phase !== "loading"}
+        className="splash-logo-frame"
+        style={{
+          opacity: phase === "reveal" ? 1 : 0,
+          transform:
+            phase === "reveal"
+              ? "scale(1) rotate(0deg)"
+              : "scale(0.3) rotate(-10deg)",
+          transition:
+            "opacity 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s",
+        }}
       >
-        <p className="splash-wordmark text-[clamp(1.4rem,7.5vw,5rem)] leading-none font-semibold tracking-[0.035em]">
-          <span className="sr-only">{WORDMARK}</span>
-          <span aria-hidden="true" className="whitespace-pre">
-            {Array.from(WORDMARK, (letter, index) => (
-              <span
-                key={`${letter}-${index}`}
-                className="splash-letter"
-                style={{ animationDelay: `${index * LETTER_DELAY_MS}ms` }}
-              >
-                {letter}
-              </span>
-            ))}
-          </span>
-        </p>
-        <p
-          className="splash-date mt-4 text-[clamp(1.05rem,2.4vw,1.8rem)] leading-tight tracking-[0.06em] italic"
-          style={{ animationDelay: `${DATE_DELAY_MS}ms` }}
-        >
-          since {YEAR_OF_ESTABLISHMENT}
-        </p>
+        {/* Pulsing ring */}
+        <div className="splash-ring" />
+        <div className="splash-logo-ornament splash-logo-ornament-top" aria-hidden="true"><span /></div>
+        <div className="splash-logo-ornament splash-logo-ornament-bottom" aria-hidden="true"><span /></div>
+        <Image
+          src="/images/madhavjimasala_logo_tbg.png"
+          alt="Madhavji Masala"
+          width={420}
+          height={249}
+          priority
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+            filter:
+              "drop-shadow(0 0 28px rgba(232, 197, 71, 0.28)) drop-shadow(0 8px 24px rgba(0, 0, 0, 0.55))",
+          }}
+        />
       </div>
+
+      {/* Tagline */}
+      <p
+        style={{
+          marginTop: "3rem",
+          fontFamily: "'Playfair Display', Georgia, serif",
+          fontSize: "1.35rem",
+          fontWeight: 500,
+          letterSpacing: "0.15em",
+          color: "rgba(232, 197, 71, 0.9)",
+          textAlign: "center",
+          opacity: phase === "reveal" ? 1 : 0,
+          transform:
+            phase === "reveal" ? "translateY(0)" : "translateY(16px)",
+          transition:
+            "opacity 0.7s ease-out 0.9s, transform 0.7s ease-out 0.9s",
+        }}
+      >
+        Pure Spices. Authentic Taste.
+      </p>
+
+      {/* Decorative line */}
+      <div
+        style={{
+          width: phase === "reveal" ? 120 : 0,
+          height: 1,
+          marginTop: "1rem",
+          background:
+            "linear-gradient(90deg, transparent, rgba(212, 160, 23, 0.5), transparent)",
+          transition: "width 0.8s ease-out 1.2s",
+        }}
+      />
+
+      {/* Since 1930 */}
+      <p
+        style={{
+          marginTop: "0.75rem",
+          fontFamily: "'Inter', system-ui, sans-serif",
+          fontSize: "0.75rem",
+          fontWeight: 400,
+          letterSpacing: "0.3em",
+          textTransform: "uppercase" as const,
+          color: "rgba(255, 255, 255, 0.35)",
+          opacity: phase === "reveal" ? 1 : 0,
+          transform:
+            phase === "reveal" ? "translateY(0)" : "translateY(10px)",
+          transition:
+            "opacity 0.6s ease-out 1.5s, transform 0.6s ease-out 1.5s",
+        }}
+      >
+        Since {YEAR_OF_ESTABLISHMENT}
+      </p>
     </div>
   );
 }

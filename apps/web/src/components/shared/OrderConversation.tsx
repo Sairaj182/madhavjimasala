@@ -125,7 +125,8 @@ export default function OrderConversation({ orderId, viewerId, adminView = false
         <div ref={messageList} aria-live="polite" className="max-h-80 min-h-24 space-y-3 overflow-y-auto rounded-xl bg-white p-3 sm:p-4">
           {loading ? <p className="py-5 text-center text-sm text-gray-500">Loading conversation…</p> : messages.length === 0 ? <p className="py-5 text-center text-sm text-gray-500">No messages yet. {adminView ? "Send a note if you need to clarify anything." : "Send your question and the store team will reply here."}</p> : messages.map((item) => {
             const mine = item.sender.id === viewerId;
-            const label = mine ? "You" : isBackofficeRole(item.sender.role) ? "Store team" : item.sender.name;
+            const fromStoreTeam = isBackofficeRole(item.sender.role);
+            const label = fromStoreTeam ? adminView ? `Store team (${item.sender.name})` : "Store team" : mine ? "You" : item.sender.name;
             return <div key={item.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
               <article className={`max-w-[88%] rounded-2xl px-3 py-2.5 sm:max-w-[75%] ${mine ? "rounded-br-md bg-brand-maroon text-white" : "rounded-bl-md border border-gray-100 bg-gray-50 text-gray-800"}`}>
                 <div className={`mb-1 flex items-center justify-between gap-5 text-[10px] font-semibold ${mine ? "text-white/75" : "text-gray-400"}`}><span>{label}</span><time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</time></div>

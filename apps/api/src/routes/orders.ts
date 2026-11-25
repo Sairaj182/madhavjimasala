@@ -60,8 +60,9 @@ const pickupCodeSchema = z.object({
 const orderMessageSchema = z.object({ message: z.string().trim().min(1).max(1200) });
 type RawOrderMessage = { id: string; message: string; createdAt: Date; senderId: string; senderName: string; senderRole: string };
 
-function presentOrderMessage(message: RawOrderMessage) {
-  return { id: message.id, message: message.message, createdAt: message.createdAt, sender: { id: message.senderId, name: message.senderName, role: message.senderRole } };
+function presentOrderMessage(message: RawOrderMessage, exposeStaffName: boolean) {
+  const senderName = !exposeStaffName && isAdminRole(message.senderRole) ? "Store team" : message.senderName;
+  return { id: message.id, message: message.message, createdAt: message.createdAt, sender: { id: message.senderId, name: senderName, role: message.senderRole } };
 }
 
 async function latestMessageRoles(orderIds: string[]) {
@@ -148,7 +149,7 @@ export async function orderRoutes(app: FastifyInstance) {
       ORDER BY message."createdAt" DESC, message."id" DESC
       LIMIT 100
     `;
-    return reply.send(messages.reverse().map(presentOrderMessage));
+    return reply.send(messages.reverse().map((message) => presentOrderMessage(message, isAdminRole(user.role))));
   });
 
   app.post("/:id/messages", { bodyLimit: 4096 }, async (request, reply) => {
