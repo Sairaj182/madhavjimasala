@@ -8,6 +8,7 @@ import { authClient } from "@/lib/auth-client";
 import { cartItemDescription, formatPaise, formatRate } from "@/lib/general-store-display";
 
 const actionClass = "inline-flex w-full items-center justify-center rounded-full bg-brand-maroon px-5 py-3 font-semibold text-white hover:bg-brand-maroon-dark disabled:opacity-50";
+const secondaryActionClass = "inline-flex w-full items-center justify-center rounded-full border border-brand-maroon px-5 py-3 font-semibold text-brand-maroon transition hover:bg-brand-maroon hover:text-white";
 
 export default function CartPage() {
   const { cartItems, totalInPaise, changeQuantity, removeItem, loading, updating, error, sessionExpired, refreshCart } = useCart();
@@ -41,6 +42,7 @@ export default function CartPage() {
           <Link className={`mt-5 ${actionClass}`} href={session?.user ? "/general-store" : "/login?callbackUrl=%2Fcart"}>
             {session?.user ? "Browse the General Store" : "Sign In"}
           </Link>
+          {session?.user && <Link className={`mt-3 ${secondaryActionClass}`} href="/orders">View Your Orders</Link>}
         </div>
       </main>
     );
@@ -49,7 +51,10 @@ export default function CartPage() {
   return (
     <main className="min-h-[60vh] bg-brand-cream/30 py-8 sm:py-12">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <Link href="/general-store" className="text-sm font-semibold text-brand-maroon hover:underline">← Continue shopping</Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link href="/general-store" className="text-sm font-semibold text-brand-maroon hover:underline">← Continue shopping</Link>
+          <Link href="/orders" className="text-sm font-semibold text-brand-maroon hover:underline">View Your Orders →</Link>
+        </div>
         <h1 className="mt-3 text-3xl font-bold font-heading text-brand-dark">Your Cart</h1>
         <p className="mt-2 text-sm text-brand-gray">તમારી વસ્તુઓ તપાસો અને પછી ઓર્ડર કન્ફર્મ કરવા આગળ વધો.</p>
         {notice && (

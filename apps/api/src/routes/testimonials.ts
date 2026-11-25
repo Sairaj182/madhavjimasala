@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@repo/db";
 import { z } from "zod";
-import { requireOwner, requireAuth } from "../middleware/auth";
+import { requireFeature, requireAuth } from "../middleware/auth";
 
 const submission = z.object({
   title: z.string().trim().max(80).default("Customer"),
@@ -39,20 +39,20 @@ export async function testimonialRoutes(app: FastifyInstance) {
     return reply.status(201).send({ message: "Thank you! Your experience will appear after review." });
   });
 
-  app.get("/pending", { preHandler: requireOwner }, async () => {
+  app.get("/pending", { preHandler: requireFeature("testimonials.manage") }, async () => {
     return prisma.$queryRaw<PendingTestimonial[]>`
       SELECT "id", "userId", "name", "title", "company", "quote", "rating", "createdAt"
       FROM "Testimonial" WHERE "approved" = false ORDER BY "createdAt" ASC LIMIT 100
     `;
   });
 
-  app.post("/:id/approve", { preHandler: requireOwner }, async (request, reply) => {
+  app.post("/:id/approve", { preHandler: requireFeature("testimonials.manage") }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const count = await prisma.$executeRaw`UPDATE "Testimonial" SET "approved" = true WHERE "id" = ${id}`;
     return count ? reply.status(204).send() : reply.status(404).send({ error: "Comment not found" });
   });
 
-  app.delete("/:id", { preHandler: requireOwner }, async (request, reply) => {
+  app.delete("/:id", { preHandler: requireFeature("testimonials.manage") }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const count = await prisma.$executeRaw`DELETE FROM "Testimonial" WHERE "id" = ${id}`;
     return count ? reply.status(204).send() : reply.status(404).send({ error: "Comment not found" });

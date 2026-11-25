@@ -1,5 +1,6 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { auth } from "@repo/auth";
+import { hasRoleFeature, type RoleFeature } from "../lib/role-permissions";
 
 export async function requireAuth(
   request: FastifyRequest,
@@ -93,4 +94,18 @@ export async function requireSuperAdmin(
   if (!isSuperAdminRole(user?.role)) {
     return reply.status(403).send({ error: "Forbidden: Super admin access required" });
   }
+}
+
+export function requireFeature(feature: RoleFeature) {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
+    let user = (request as any).user as { role?: string } | undefined;
+    if (!user) {
+      await requireAuth(request, reply);
+      if (reply.sent) return;
+      user = (request as any).user as { role?: string };
+    }
+    if (!(await hasRoleFeature(user.role, feature))) {
+      return reply.status(403).send({ error: "Your role does not have access to this feature." });
+    }
+  };
 }

@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { authClient } from "@/lib/auth-client";
-import { isOwnerRole, isStaffRole } from "@/lib/admin-roles";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
@@ -59,9 +57,9 @@ function normalizeLooseRule(rule: NonNullable<Product["loosePricingRules"]>[numb
 }
 
 export default function AdminProducts() {
-  const { data: session } = authClient.useSession();
-  const owner = isOwnerRole(session?.user.role);
-  const staff = isStaffRole(session?.user.role);
+  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
+  const canManageProducts = permissions["products.manage"] === true;
+  const canChangeAvailability = permissions["products.availability"] === true;
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
@@ -105,7 +103,8 @@ export default function AdminProducts() {
 
   useEffect(() => {
     fetchProducts();
-    fetch(`${API_URL}/settings/store`, { credentials: "include" })
+    fetch(`${API_URL}/admin/permissions/me`, { credentials: "include", cache: "no-store" }).then((res) => res.ok ? res.json() : null).then((data) => setPermissions(data?.permissions || {})).catch(() => setPermissions({}));
+    fetch(`${API_URL}/settings/inventory`, { credentials: "include" })
       .then((res) => res.ok ? res.json() : null)
       .then((data) => setInventoryManagementEnabled(data?.inventoryManagementEnabled === true))
       .catch(() => setInventoryManagementEnabled(false));
@@ -113,7 +112,7 @@ export default function AdminProducts() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!owner) return;
+    if (!canManageProducts) return;
     if (isGeneralStore && formData.allowLooseQuantity) {
       const rules = [...formData.loosePricingRules].sort((a, b) => a.minWeightGrams - b.minWeightGrams);
       const invalid = rules.some((rule, index) =>
@@ -170,7 +169,7 @@ export default function AdminProducts() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!owner) return;
+    if (!canManageProducts) return;
     if (!confirm("Are you sure you want to delete this product?")) return;
     try {
       const res = await fetch(`${API_URL}/products/${id}`, {
@@ -253,7 +252,7 @@ export default function AdminProducts() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold text-gray-900">{isGeneralStore ? "General Store Products" : "Products Management"}</h1>
-        {owner && <button
+        {canManageProducts && <button
           onClick={() => openModal()}
           className="bg-brand-maroon text-white px-4 py-2 rounded-lg font-semibold hover:bg-brand-maroon-dark transition-colors flex items-center gap-2"
         >
@@ -301,10 +300,11 @@ export default function AdminProducts() {
                         </span>
                       </td>
                       <td className="p-4 text-right">
-                        {staff ? <div className="ml-auto min-w-[14rem] space-y-2 text-left">
+                        {canChangeAvailability && <div className="ml-auto min-w-[14rem] space-y-2 text-left">
                           <button type="button" onClick={() => void updateProductActiveState(product)} className="text-xs font-bold text-brand-maroon hover:underline">{product.isActive ? "Make product unavailable" : "Make product active"}</button>
                           {(product.packagingSizes || []).map((packing) => <label key={packing.label} className="flex items-center justify-between gap-2 text-xs text-gray-600"><span className="min-w-0 truncate">{packing.label}</span><select value={packing.availability || "AVAILABLE"} onChange={(event) => void updateAvailability(product, packing.label, event.target.value)} className="rounded-lg border border-gray-200 px-2 py-1 text-xs"><option value="AVAILABLE">Available</option><option value="UNAVAILABLE">Unavailable</option><option value="ON_REQUEST">On request</option></select></label>)}
-                        </div> : <><button onClick={() => openModal(product)} className="mr-4 text-sm font-medium text-blue-600 hover:text-blue-800">Edit</button><button onClick={() => handleDelete(product.id)} className="text-sm font-medium text-red-600 hover:text-red-800">Delete</button></>}
+                        </div>}
+                        {canManageProducts && <><button onClick={() => openModal(product)} className="mr-4 text-sm font-medium text-blue-600 hover:text-blue-800">Edit</button><button onClick={() => handleDelete(product.id)} className="text-sm font-medium text-red-600 hover:text-red-800">Delete</button></>}
                       </td>
                     </tr>
                   ))

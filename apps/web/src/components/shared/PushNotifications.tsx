@@ -11,7 +11,7 @@ function decodeKey(value: string) {
   return Uint8Array.from([...raw].map((character) => character.charCodeAt(0)));
 }
 
-export default function PushNotifications() {
+export default function PushNotifications({ adminMode = false }: { adminMode?: boolean }) {
   const [working, setWorking] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
@@ -27,14 +27,23 @@ export default function PushNotifications() {
       try {
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.getSubscription();
+        if (subscription && adminMode) {
+          const response = await fetch(`${API_URL}/push/subscribe`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(subscription.toJSON()),
+          });
+          if (!response.ok) throw new Error("Unable to sync this device for new-order alerts.");
+        }
         if (!cancelled) setEnabled(Boolean(subscription));
       } catch {
-        if (!cancelled) setMessage("Push notifications are not available on this device.");
+        if (!cancelled) setMessage(adminMode ? "Could not enable new-order alerts on this device." : "Push notifications are not available on this device.");
       }
     };
     void detectSubscription();
     return () => { cancelled = true; };
-  }, []);
+  }, [adminMode]);
 
   const enableNotifications = async () => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
@@ -50,7 +59,9 @@ export default function PushNotifications() {
       if (!keyResponse.ok) throw new Error("Push notifications are not configured yet.");
       const { publicKey } = await keyResponse.json();
       const permission = await Notification.requestPermission();
-      if (permission !== "granted") throw new Error("Notification permission was not granted.");
+      if (permission !== "granted") {
+        throw new Error("Allow notifications in your browser or device settings, then try again.");
+      }
 
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription() || await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeKey(publicKey) });
@@ -65,7 +76,7 @@ export default function PushNotifications() {
         throw new Error(data?.error || "Unable to enable notifications.");
       }
       setEnabled(true);
-      setMessage("Order notifications are enabled on this device.");
+      setMessage(adminMode ? "You will be alerted when a new order arrives." : "Order notifications are enabled on this device.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to enable notifications.");
     } finally {
@@ -105,7 +116,7 @@ export default function PushNotifications() {
 
   if (enabled) return (
     <div className="flex flex-col items-start gap-1 sm:items-end">
-      <span className="text-xs font-semibold text-green-700">Order notifications enabled</span>
+      <span className="text-xs font-semibold text-green-700">{adminMode ? "New-order alerts enabled" : "Order notifications enabled"}</span>
       <button type="button" onClick={() => void disableNotifications()} disabled={working} className="text-xs font-semibold text-brand-gray underline underline-offset-2 hover:text-brand-maroon disabled:opacity-60">
         {working ? "Updating..." : "Disable on this device"}
       </button>
@@ -116,7 +127,7 @@ export default function PushNotifications() {
   return (
     <div className="flex flex-col items-start gap-2 sm:items-end">
       <button type="button" onClick={() => void enableNotifications()} disabled={working} className="rounded-full border border-brand-maroon px-4 py-2 text-xs font-bold text-brand-maroon transition hover:bg-brand-maroon hover:text-white disabled:opacity-60">
-        {working ? "Enabling..." : "Enable order notifications"}
+        {working ? "Enabling..." : adminMode ? "Enable new-order alerts" : "Enable order notifications"}
       </button>
       {message && <p className="text-xs text-red-700">{message}</p>}
     </div>

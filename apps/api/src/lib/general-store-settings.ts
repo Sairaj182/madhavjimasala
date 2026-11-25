@@ -8,6 +8,7 @@ export type GeneralStoreControls = {
   generalStoreOrdersOpen: boolean;
   generalStorePickupOpen: boolean;
   generalStoreNotificationsOpen: boolean;
+  generalStoreChatOpen: boolean;
   generalStoreMaintenanceMessage: string;
 };
 
@@ -19,6 +20,7 @@ export const defaultGeneralStoreControls: GeneralStoreControls = {
   generalStoreOrdersOpen: true,
   generalStorePickupOpen: true,
   generalStoreNotificationsOpen: true,
+  generalStoreChatOpen: false,
   generalStoreMaintenanceMessage: "General Store ordering is temporarily unavailable.",
 };
 
@@ -26,8 +28,8 @@ export async function getGeneralStoreControls(db: Pick<typeof prisma, "$queryRaw
   const rows = await db.$queryRaw<GeneralStoreControls[]>`
     SELECT "generalStoreEnabled", "generalStoreCatalogueOpen", "generalStoreCartOpen",
       "generalStoreCheckoutOpen", "generalStoreOrdersOpen", "generalStorePickupOpen",
-      "generalStoreNotificationsOpen", "generalStoreMaintenanceMessage"
+      "generalStoreNotificationsOpen", "generalStoreChatOpen", "generalStoreMaintenanceMessage"
     FROM "StoreSettings" WHERE "id" = 'store' LIMIT 1
   `;
-  return rows[0] ?? defaultGeneralStoreControls;
+  return { ...defaultGeneralStoreControls, ...(rows[0] ?? {}) };
 }

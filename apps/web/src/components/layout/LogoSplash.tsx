@@ -110,11 +110,11 @@ export default function LogoSplash() {
       <div
         style={{
           position: "absolute",
-          width: 400,
-          height: 400,
+          width: 520,
+          height: 320,
           borderRadius: "50%",
           background:
-            "radial-gradient(circle, rgba(212, 160, 23, 0.15) 0%, rgba(139, 26, 26, 0.08) 40%, transparent 70%)",
+            "radial-gradient(ellipse, rgba(232, 197, 71, 0.18) 0%, rgba(139, 26, 26, 0.1) 46%, transparent 72%)",
           opacity: phase === "reveal" ? 1 : 0,
           transform: phase === "reveal" ? "scale(1)" : "scale(0.5)",
           transition:
@@ -125,10 +125,8 @@ export default function LogoSplash() {
 
       {/* Logo */}
       <div
+        className="splash-logo-frame"
         style={{
-          position: "relative",
-          width: 260,
-          height: 260,
           opacity: phase === "reveal" ? 1 : 0,
           transform:
             phase === "reveal"
@@ -140,18 +138,20 @@ export default function LogoSplash() {
       >
         {/* Pulsing ring */}
         <div className="splash-ring" />
+        <div className="splash-logo-ornament splash-logo-ornament-top" aria-hidden="true"><span /></div>
+        <div className="splash-logo-ornament splash-logo-ornament-bottom" aria-hidden="true"><span /></div>
         <Image
-          src="/images/madhavjimasala_OnLoadLogo.png"
+          src="/images/madhavjimasala_logo_tbg.png"
           alt="Madhavji Masala"
-          width={260}
-          height={260}
+          width={420}
+          height={249}
           priority
           style={{
             width: "100%",
             height: "100%",
             objectFit: "contain",
             filter:
-              "drop-shadow(0 0 30px rgba(212, 160, 23, 0.3)) drop-shadow(0 4px 20px rgba(0, 0, 0, 0.5))",
+              "drop-shadow(0 0 28px rgba(232, 197, 71, 0.28)) drop-shadow(0 8px 24px rgba(0, 0, 0, 0.55))",
           }}
         />
       </div>
@@ -159,8 +159,8 @@ export default function LogoSplash() {
       {/* Tagline */}
       <p
         style={{
-          marginTop: "1.5rem",
-          fontFamily: "'Playfair Display Variable', Georgia, serif",
+          marginTop: "3rem",
+          fontFamily: "'Playfair Display', Georgia, serif",
           fontSize: "1.35rem",
           fontWeight: 500,
           letterSpacing: "0.15em",
@@ -188,11 +188,11 @@ export default function LogoSplash() {
         }}
       />
 
-      {/* Since 1982 */}
+      {/* Since 1930 */}
       <p
         style={{
           marginTop: "0.75rem",
-          fontFamily: "'Inter Variable', Inter, system-ui, sans-serif",
+          fontFamily: "'Inter', system-ui, sans-serif",
           fontSize: "0.75rem",
           fontWeight: 400,
           letterSpacing: "0.3em",

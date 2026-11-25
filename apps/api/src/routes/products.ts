@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "@repo/db";
-import { requireAdmin, requireOwner } from "../middleware/auth";
+import { requireFeature } from "../middleware/auth";
 import { z } from "zod";
 import { createHash } from "node:crypto";
 import sharp from "sharp";
@@ -146,7 +146,7 @@ export async function productRoutes(app: FastifyInstance) {
   });
 
   // Admin catalogue views must retain inactive products for restoration.
-  app.get("/admin", { preHandler: requireAdmin }, async (request, reply) => {
+  app.get("/admin", { preHandler: requireFeature("products.view") }, async (request, reply) => {
     const { kind } = request.query as { kind?: string };
     const inventoryEnabled = await inventoryManagementEnabled();
     const products = await prisma.product.findMany({
@@ -172,7 +172,7 @@ export async function productRoutes(app: FastifyInstance) {
   });
 
   // Admin Routes
-  app.post("/", { preHandler: requireOwner }, async (request, reply) => {
+  app.post("/", { preHandler: requireFeature("products.manage") }, async (request, reply) => {
     try {
       const data = createProductSchema.parse(request.body);
       const inventoryEnabled = await inventoryManagementEnabled();
@@ -210,7 +210,7 @@ export async function productRoutes(app: FastifyInstance) {
     }
   });
 
-  app.post("/:id/images", { preHandler: requireOwner }, async (request, reply) => {
+  app.post("/:id/images", { preHandler: requireFeature("products.manage") }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const product = await prisma.product.findUnique({ where: { id }, select: { isGeneralStore: true, images: true } });
@@ -263,7 +263,7 @@ export async function productRoutes(app: FastifyInstance) {
     }
   });
 
-  app.delete("/:id/images", { preHandler: requireOwner }, async (request, reply) => {
+  app.delete("/:id/images", { preHandler: requireFeature("products.manage") }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const { publicId } = z.object({ publicId: z.string().trim().min(1).max(255) }).parse(request.body);
@@ -291,7 +291,7 @@ export async function productRoutes(app: FastifyInstance) {
     }
   });
 
-  app.patch("/:id/availability", { preHandler: requireAdmin }, async (request, reply) => {
+  app.patch("/:id/availability", { preHandler: requireFeature("products.availability") }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const data = availabilityUpdateSchema.parse(request.body);
@@ -326,7 +326,7 @@ export async function productRoutes(app: FastifyInstance) {
     }
   });
 
-  app.put("/:id", { preHandler: requireOwner }, async (request, reply) => {
+  app.put("/:id", { preHandler: requireFeature("products.manage") }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       const data = updateProductSchema.parse(request.body);
@@ -352,7 +352,7 @@ export async function productRoutes(app: FastifyInstance) {
     }
   });
 
-  app.delete("/:id", { preHandler: requireOwner }, async (request, reply) => {
+  app.delete("/:id", { preHandler: requireFeature("products.manage") }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
       // Products are archived so historical cart/order lines keep their identity.

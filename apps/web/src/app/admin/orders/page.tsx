@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Toast from "@/components/shared/Toast";
 import { basePriceInPaise, formatRate, formatWeightGrams, formatWeightText, looseUnitTotalInPaise } from "@/lib/general-store-display";
 import { authClient } from "@/lib/auth-client";
-import { isOwnerRole, isStaffRole } from "@/lib/admin-roles";
+import OrderConversation from "@/components/shared/OrderConversation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 const PAST_ORDER_STATUSES = new Set(["PICKED_UP", "CANCELLED"]);
@@ -48,6 +48,7 @@ type Order = {
   paymentStatus: string;
   totalInPaise: number;
   createdAt: string;
+  customerMessageNeedsReply?: boolean;
   user: { email: string };
   pickupSlot: { date: string; startTime: string; endTime: string };
   items: OrderItem[];
@@ -144,8 +145,6 @@ function OrderSummary({ order }: { order: Order }) {
 
 export default function AdminOrders() {
   const { data: session } = authClient.useSession();
-  const owner = isOwnerRole(session?.user.role);
-  const staff = isStaffRole(session?.user.role);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [pickupCode, setPickupCode] = useState("");
@@ -163,13 +162,17 @@ export default function AdminOrders() {
   const [queueFilter, setQueueFilter] = useState("ALL");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [showPickupVerification, setShowPickupVerification] = useState(false);
+  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
 
   const fetchOrders = async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
       const res = await fetch(`${API_URL}/orders/all`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch orders");
-      setOrders(await res.json());
+      const nextOrders: Order[] = await res.json();
+      setOrders(nextOrders);
+      const requestedOrderId = new URLSearchParams(window.location.search).get("order");
+      if (requestedOrderId && nextOrders.some((order) => order.id === requestedOrderId)) setSelectedOrderId(requestedOrderId);
     } catch (error) {
       console.error(error);
       if (showLoading) setMessage("Unable to load orders.");
@@ -179,12 +182,26 @@ export default function AdminOrders() {
   };
 
   useEffect(() => {
+    if (!["orders.view", "orders.review", "orders.ready", "orders.status", "orders.messages"].some((feature) => permissions[feature] === true)) {
+      setLoading(false);
+      return;
+    }
     void fetchOrders();
     const refreshInterval = window.setInterval(() => {
       void fetchOrders(false);
     }, 10000);
 
     return () => window.clearInterval(refreshInterval);
+  }, [permissions]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_URL}/admin/permissions/me`, { credentials: "include", cache: "no-store" }).then(async (response) => {
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error("Unable to load permissions");
+      return data as { permissions: Record<string, boolean> };
+    }).then((data) => { if (!cancelled) setPermissions(data.permissions); }).catch(() => { if (!cancelled) setPermissions({}); });
+    return () => { cancelled = true; };
   }, []);
 
   const selectedItemsFor = (order: Order) =>
@@ -377,6 +394,7 @@ export default function AdminOrders() {
     return matchesSearch && (queueFilter === "ALL" || order.status === queueFilter);
   });
   const selectedOrder = visibleOrders.find((order) => order.id === selectedOrderId) || null;
+  const canAccessOrderBoard = ["orders.view", "orders.review", "orders.ready", "orders.status", "orders.messages"].some((feature) => permissions[feature] === true);
 
   return (
     <>
@@ -387,15 +405,15 @@ export default function AdminOrders() {
           <p className="text-xs font-bold uppercase tracking-widest text-brand-gold">Operations</p>
           <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Orders Management</h1>
         </div>
-        <button onClick={() => void fetchOrders()} className="text-sm font-semibold text-gray-600 hover:text-brand-maroon">
+        {canAccessOrderBoard && <button onClick={() => void fetchOrders()} className="text-sm font-semibold text-gray-600 hover:text-brand-maroon">
           Refresh
-        </button>
+        </button>}
       </div>
 
-      {owner && <section className="rounded-2xl border border-brand-gold/30 bg-brand-cream/30 p-3 shadow-sm sm:p-5">
+      {(permissions["pickup.verify"] || permissions["payments.record"] || permissions["pickup.fulfill"]) && <section className="rounded-2xl border border-brand-gold/30 bg-brand-cream/30 p-3 shadow-sm sm:p-5">
         <button type="button" onClick={() => setShowPickupVerification((current) => !current)} className="flex w-full items-center justify-between gap-3 text-left">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-brand-maroon">Verify pickup</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-brand-maroon">{permissions["pickup.verify"] ? "Verify pickup" : permissions["payments.record"] ? "Record cash payment" : "Complete pickup"}</p>
             <h2 className="mt-1 text-lg font-bold text-gray-900">Find an order by customer pickup code</h2>
           </div>
           <span className="rounded-full border border-brand-maroon/20 bg-white px-3 py-1 text-xs font-bold text-brand-maroon">{showPickupVerification ? "Hide" : "Open"}</span>
@@ -485,11 +503,11 @@ export default function AdminOrders() {
           <OrderSummary order={verifiedOrder} />
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 p-3 text-sm font-semibold">
+            {permissions["payments.record"] && <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 p-3 text-sm font-semibold">
               <input type="checkbox" checked={paymentPaid} onChange={(event) => setPaymentPaid(event.target.checked)} className="h-4 w-4 accent-green-600" />
               Payment received
-            </label>
-            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 p-3 text-sm font-semibold">
+            </label>}
+            {permissions["pickup.fulfill"] && <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 p-3 text-sm font-semibold">
               <input
                 type="checkbox"
                 checked={pickedUp}
@@ -498,11 +516,11 @@ export default function AdminOrders() {
                 className="h-4 w-4 accent-brand-maroon"
               />
               Order picked up
-            </label>
+            </label>}
           </div>
           <button
             onClick={() => void updateFulfillment()}
-            disabled={fulfillmentLoading || (!paymentPaid && !pickedUp)}
+            disabled={fulfillmentLoading || (!permissions["payments.record"] && !permissions["pickup.fulfill"]) || (!paymentPaid && !pickedUp)}
             className="mt-4 w-full rounded-xl border border-brand-maroon px-5 py-3 text-sm font-bold text-brand-maroon disabled:cursor-not-allowed disabled:opacity-40"
           >
             {fulfillmentLoading ? "Saving..." : "Save verified fulfillment"}
@@ -510,7 +528,7 @@ export default function AdminOrders() {
         </section>
       )}
 
-      <section className="min-w-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+      {canAccessOrderBoard ? <section className="min-w-0 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
         <div className="border-b border-gray-100 px-3 py-4 sm:px-6 sm:py-5">
           <h2 className="text-lg font-bold text-gray-900">Order status board</h2>
           <p className="mt-1 text-sm text-gray-500">Review availability, adjust what can be prepared, then confirm the order.</p>
@@ -575,6 +593,7 @@ export default function AdminOrders() {
                       <div className="flex items-start justify-between gap-2"><span className="min-w-0 truncate text-sm font-bold text-gray-900">{order.customerName}</span><span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${statusClass(order.status)}`}>{needsReview ? "Needs review" : "Reviewed"}</span></div>
                       <p className="mt-1 text-xs font-semibold text-brand-maroon">ORD{String(order.serialNumber).padStart(6, "0")}</p>
                       <p className="mt-1 truncate text-xs text-gray-500">{new Date(order.pickupSlot.date).toLocaleDateString()} · {order.pickupSlot.startTime} - {order.pickupSlot.endTime}</p>
+                      {order.customerMessageNeedsReply && <p className="mt-2 inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-800">Customer asked a question</p>}
                       <div className="mt-2 flex justify-between text-xs text-gray-500"><span>{order.items.length} item{order.items.length === 1 ? "" : "s"}</span><span className="font-semibold text-gray-800">₹{(order.totalInPaise / 100).toFixed(2)}</span></div>
                     </button>;
                   })}
@@ -681,18 +700,19 @@ export default function AdminOrders() {
                           </label>
                         })}
                       </div>
-                      <button
+                      {permissions["orders.review"] && <button
                         onClick={() => void confirmAvailableItems(order)}
                         disabled={order.status !== "PENDING" && order.status !== "PARTIALLY_ACCEPTED"}
                         className="sticky bottom-2 z-10 mt-4 w-full rounded-lg bg-brand-maroon px-4 py-3 text-sm font-bold text-white shadow-lg ring-4 ring-white disabled:cursor-not-allowed disabled:opacity-40 sm:static sm:shadow-none sm:ring-0"
                       >
                         Confirm and prepare selected items · પસંદ કરેલી વસ્તુઓ કન્ફર્મ કરો
-                      </button>
+                      </button>}
                     </div>
                   </div>
                 </div>
-                {(owner || staff) && <div className="flex flex-wrap gap-2 border-t border-gray-100 pt-4 lg:justify-end">
-                  {availableStatuses(order.status).filter((status) => owner || status === order.status || status === "READY_FOR_PICKUP").map((status) => (
+                {session?.user.id && permissions["orders.messages"] && <OrderConversation orderId={order.id} viewerId={session.user.id} adminView />}
+                {(permissions["orders.ready"] || permissions["orders.status"]) && <div className="flex flex-wrap gap-2 border-t border-gray-100 pt-4 lg:justify-end">
+                  {availableStatuses(order.status).filter((status) => status !== order.status && (status === "READY_FOR_PICKUP" ? permissions["orders.ready"] || permissions["orders.status"] : permissions["orders.status"])).map((status) => (
                     <button
                       key={status}
                       onClick={() => void updateOrderStatus(order, status)}
@@ -712,7 +732,7 @@ export default function AdminOrders() {
             </div>
           </div>
         )}
-      </section>
+      </section> : <p className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900">Your role can use the pickup and payment tools above, but order list access is not enabled. Enter the customer’s pickup code to find the order.</p>}
       </div>
     </>
   );
